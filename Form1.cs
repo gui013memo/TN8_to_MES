@@ -2,6 +2,7 @@ using Newtonsoft.Json;
 using System.Dynamic;
 using System.Text.Json.Nodes;
 using System.Data.SqlClient;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace TN8_to_MES
 {
@@ -47,7 +48,7 @@ namespace TN8_to_MES
         SqlCommand command;
         SqlDataReader reader;
 
-        string connetionString = @"Data Source=127.0.0.1;Initial Catalog=API_Test;User ID=test;Password=test";
+        string connectionString = @"Data Source=10.127.56.238;Initial Catalog=ACDC_Test;User ID=ACDC_Test_user;Password=test";
 
         string query = string.Empty;
 
@@ -209,7 +210,7 @@ namespace TN8_to_MES
             textBox1.Text += "P1 DONE\r\n";
             var dataCV = JsonConvert.DeserializeObject<Data1>(strCV);
             textBox1.Text += dataCV.Data[0].ResultMetaData.Tags[0].Value + "\r\n";
-             
+
             //============================= GH
             var httpClient2 = new HttpClient();
             var respGH = await httpClient2.GetAsync("http://127.0.0.1:7110/api/v3/results/tightening?programId=0050D604FB07-1-1&limit=1");
@@ -227,6 +228,7 @@ namespace TN8_to_MES
             resultDataGH.send_date = dataGH.Data[0].ResultMetaData.CreationTime.Replace("-", string.Empty);
             resultDataGH.send_date = resultDataGH.send_date.Replace(":", string.Empty);
             resultDataGH.send_date = resultDataGH.send_date.Replace("T", string.Empty);
+            resultDataGH.send_date = resultDataGH.send_date.Substring(0, 14);
             resultDataGH.resultEvaluation = dataGH.Data[0].ResultContent[0].OverallResultValues[0].ResultEvaluation;
             resultDataGH.torque = dataGH.Data[0].ResultContent[0].OverallResultValues[0].TargetValue.ToString();
 
@@ -248,8 +250,9 @@ namespace TN8_to_MES
             resultDataCV.send_date = dataCV.Data[0].ResultMetaData.CreationTime.Replace("-", string.Empty);
             resultDataCV.send_date = resultDataCV.send_date.Replace(":", string.Empty);
             resultDataCV.send_date = resultDataCV.send_date.Replace("T", string.Empty);
+            resultDataCV.send_date = resultDataCV.send_date.Substring(0, 14);
             resultDataCV.resultEvaluation = dataCV.Data[0].ResultContent[0].OverallResultValues[0].ResultEvaluation;
-            resultDataCV.torque = dataCV.Data[0].ResultContent[0].OverallResultValues[0].TargetValue.ToString();
+            resultDataCV.torque = dataCV.Data[0].ResultContent[0].OverallResultValues[0].Value.ToString();
 
             resultDataCV.send_data = resultDataCV.vin +
                 ";" + resultDataCV.send_date.Substring(0, 8) +
@@ -260,8 +263,66 @@ namespace TN8_to_MES
 
             textBox1.Text += "\r\nCV:" + resultDataCV.send_data;
 
+           textBox1.Text += "SEND DATE: " + resultDataGH.send_date + "\r\n";
+            
 
+     //       query = "INSERT INTO [dbo].[Q_QUALITY_IF]\r\n" +
+     //"([DEV_ID]\r\n" +
+     //",[SEND_DATE]\r\n" +
+     //",[SEND_SERIAL]\r\n" +
+     //",[DATA_SIZE]\r\n" +
+     //",[DATA_TYPE]\r\n" +
+     //",[SEND_DATA]\r\n" +
+     //",[CREATE_TIME]\r\n" +
+     //",[CREATE_USER]\r\n" +
+     //",[RESULT_ID]\r\n" +
+     //",[PROGRAM_VERSION])\r\n" +
+     //"VALUES\r\n" +
+     //"('DIAP080'\r\n" +
+     //"," + resultDataGH.send_date +
+     //",'1'\r\n" +
+     //",'44'\r\n" +
+     //",'QR'\r\n" +
+     //"," + resultDataGH.send_data + "\r\n" +
+     //"," + resultDataGH.send_date + "\r\n" +
+     //"," + resultDataGH.vin + "\r\n" +
+     //"," + resultDataGH.currentResultIdGH + "\r\n" +
+     //"," + resultDataGH.currentProgramversion;
 
+            try
+            {
+                string sql = "insert into [dbo].[Q_QUALITY_IF] (DEV_ID,SEND_DATE,SEND_SERIAL,DATA_SIZE,DATA_TYPE," +
+                    "SEND_DATA,CREATE_TIME,CREATE_USER,RESULT_ID,PROGRAM_VERSION) " +
+                    "values (@DEV_ID,@SEND_DATE,@SEND_SERIAL,@DATA_SIZE,@DATA_TYPE,@SEND_DATA,@CREATE_TIME," +
+                    "@CREATE_USER,@RESULT_ID,@PROGRAM_VERSION)";
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@DEV_ID", "DIAP080");
+                        cmd.Parameters.AddWithValue("@SEND_DATE", resultDataGH.send_date);
+                        cmd.Parameters.AddWithValue("@SEND_SERIAL", "1");
+                        cmd.Parameters.AddWithValue("@DATA_SIZE", "44");
+                        cmd.Parameters.AddWithValue("@DATA_TYPE", "QR");
+                        cmd.Parameters.AddWithValue("@SEND_DATA", resultDataGH.send_data);
+                        cmd.Parameters.AddWithValue("@CREATE_TIME", resultDataGH.send_date);
+                        cmd.Parameters.AddWithValue("@CREATE_USER", resultDataGH.vin);
+                        cmd.Parameters.AddWithValue("@RESULT_ID", resultDataGH.currentResultIdGH);
+                        cmd.Parameters.AddWithValue("@PROGRAM_VERSION", resultDataGH.currentProgramversion);
+
+                        textBox1.Text += "\r\n" + "Rows affected" + cmd.ExecuteNonQuery().ToString();
+                    }
+                }
+            }
+            catch (SqlException ex)
+            {
+                string msg = "Insert Error:";
+                msg += ex.Message;
+                textBox1.Text = msg;
+            }
+            textBox1.Text += "\r\n END";
+            textBox1.Text += "SEND DATE: " + resultDataGH.send_date + "\r\n";
         }
 
         private void button1_Click(object sender, EventArgs e)
