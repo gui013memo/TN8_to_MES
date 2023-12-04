@@ -7,9 +7,40 @@ namespace TN8_to_MES
 {
     public partial class Form1 : Form
     {
-        string currentResultIdGH = string.Empty;
-        string currentResultIdCV = string.Empty;
-        string APIRequest = string.Empty;
+        public partial class ResultDataCV
+        {
+            public string currentResultIdCV = string.Empty;
+            public string currentProgramversion = string.Empty;
+            public string dev_id = "DIAP080";
+            public string send_date = string.Empty;
+            public string send_serial = string.Empty;
+            public string data_size = "44";
+            public string data_type = "QR";
+            public string send_data = string.Empty;
+            public string create_time = string.Empty;
+            public string create_user = string.Empty;
+            public string vin = string.Empty;
+            public string torque = string.Empty;
+            public string resultEvaluation = string.Empty;
+        }
+
+        public partial class ResultDataGH
+        {
+            public string currentResultIdGH = string.Empty;
+            public string currentProgramversion = string.Empty;
+            public string dev_id = "DIAP080";
+            public string send_date = string.Empty;
+            public string send_serial = string.Empty;
+            public string data_size = "44";
+            public string data_type = "QR";
+            public string send_data = string.Empty;
+            public string create_time = string.Empty;
+            public string create_user = string.Empty;
+            public string vin = string.Empty;
+            public string torque = string.Empty;
+            public string resultEvaluation = string.Empty;
+        }
+
         int startmemory = 0;
 
         SqlConnection cnn;
@@ -18,7 +49,7 @@ namespace TN8_to_MES
 
         string connetionString = @"Data Source=127.0.0.1;Initial Catalog=API_Test;User ID=test;Password=test";
 
-        string query = "INSERT INTO [dbo].[Q_QUALITY_IF]\r\n           ([DEV_ID]\r\n           ,[SEND_DATE]\r\n           ,[SEND_SERIAL]\r\n           ,[DATA_SIZE]\r\n           ,[DATA_TYPE]\r\n           ,[SEND_DATA]\r\n           ,[CREATE_TIME]\r\n           ,[CREATE_USER])\r\n     VALUES\r\n           ('DIAP080'\r\n           ,'20231201113946'\r\n           ,'1'\r\n           ,'42'\r\n           ,'QR'\r\n           ,'GHF 546502;20231201;113923;DIAP080;OK;48.70;'\r\n           ,'20231201113946'\r\n           ,'GHF 546502')\r\n";
+        string query = string.Empty;
 
         public partial class Data1
         {
@@ -168,37 +199,78 @@ namespace TN8_to_MES
             //string fileName = @"C:\Users\a00542721\OneDrive - ONEVIRTUALOFFICE\Documents\my\Workspaces\ws-VSCommunity\TN8_to_MES_adapter\Notes\Result-GH.txt";
             //string jsontxt = File.ReadAllText(fileName);
             //var data = JsonConvert.DeserializeObject<Data1>(jsontxt);
-
-
         }
 
         private async void timer1_Tick(object sender, EventArgs e)
         {
             timer1.Stop();
+            ResultDataGH resultDataGH = new ResultDataGH();
+            ResultDataCV resultDataCV = new ResultDataCV();
             checkBox1.Checked = true;
             textBox1.Text = "T STOPPED";
 
-            var httpClient = new HttpClient();
-            var respCV = await httpClient.GetAsync("http://127.0.0.1:7110/api/v3/results/tightening?programId=0050D604FB07-2-1&limit=1");
-            string strCV = await respCV.Content.ReadAsStringAsync();
-
-            textBox1.Text = "P1 DONE";
+            //var httpClient = new HttpClient();
+            //var respCV = await httpClient.GetAsync("http://127.0.0.1:7110/api/v3/results/tightening?programId=0050D604FB07-2-1&limit=1");
+            //string strCV = await respCV.Content.ReadAsStringAsync();
+            //textBox1.Text = "P1 DONE";
 
             var httpClient2 = new HttpClient();
-            var respGH = await httpClient2.GetAsync("http://127.0.0.1:7110/api/v3/results/tightening?programId=0050D604FB07-1-1&limit=1");
+            var respGH = await httpClient2.GetAsync("http://127.0.0.1:7110/api/v3/results/tightening?programId=0050D604FB07-2-1&limit=1");
             string strGH = await respGH.Content.ReadAsStringAsync();
+            textBox1.Text = "P2 DONE";
 
-            var dataCV = JsonConvert.DeserializeObject<Data1>(strCV);
+            //var dataCV = JsonConvert.DeserializeObject<Data1>(strCV);
             var dataGH = JsonConvert.DeserializeObject<Data1>(strGH);
+            textBox1.Text = "Convertion DONE";
 
-            textBox1.Text = "Creation Time: " + dataGH.Data[0].ResultMetaData.CreationTime.ToString() + "\r\n";
-            textBox1.Text += "ResultId: " + dataGH.Data[0].ResultMetaData.ResultId.ToString() + "\r\n";
+            //textBox1.Text = "Creation Time: " + dataGH.Data[0].ResultMetaData.CreationTime.ToString() + "\r\n";
+            //textBox1.Text += "ResultId: " + dataGH.Data[0].ResultMetaData.ResultId.ToString() + "\r\n";
 
-            textBox1.Text += "Creation Time: " + dataCV.Data[0].ResultMetaData.CreationTime.ToString() + "\r\n";
-            textBox1.Text += "ResultId: " + dataCV.Data[0].ResultMetaData.ResultId.ToString() + "\r\n";
+            //textBox1.Text += "Creation Time: " + dataCV.Data[0].ResultMetaData.CreationTime.ToString() + "\r\n";
+            //textBox1.Text += "ResultId: " + dataCV.Data[0].ResultMetaData.ResultId.ToString() + "\r\n";
 
-            currentResultIdGH = dataGH.Data[0].ResultMetaData.ResultId.ToString();
-            currentResultIdCV = dataCV.Data[0].ResultMetaData.ResultId.ToString();
+            resultDataGH.currentResultIdGH = dataGH.Data[0].ResultMetaData.ResultId.ToString();
+            resultDataGH.currentProgramversion = dataGH.Data[0].ResultMetaData.programVersionId;
+
+            resultDataGH.vin = dataGH.Data[0].ResultMetaData.Tags[0].Value;
+            resultDataGH.send_date = dataGH.Data[0].ResultMetaData.CreationTime.ToString();
+            resultDataGH.resultEvaluation = dataGH.Data[0].ResultContent[0].OverallResultValues[0].ResultEvaluation;
+            resultDataGH.torque = dataGH.Data[0].ResultContent[0].OverallResultValues[0].TargetValue.ToString();
+
+            resultDataGH.send_data = resultDataGH.vin +
+                ";" + resultDataGH.send_date.Substring(0, 8) +
+                ";" + resultDataGH.send_date.Substring(8) +
+                ";" + resultDataGH.dev_id +
+                ";" + resultDataGH.resultEvaluation +
+                ";" + resultDataGH.torque + ";";
+
+
+            query = "INSERT INTO [dbo].[Q_QUALITY_IF]\r\n" +
+                "([DEV_ID]\r\n" +
+                ",[SEND_DATE]\r\n" +
+                ",[SEND_SERIAL]\r\n" +
+                ",[DATA_SIZE]\r\n" +
+                ",[DATA_TYPE]\r\n" +
+                ",[SEND_DATA]\r\n" +
+                ",[CREATE_TIME]\r\n" +
+                ",[CREATE_USER]\r\n" +
+                ",[RESULT_ID]\r\n" +
+                ",[PROGRAM_VERSION])\r\n" +
+                "VALUES\r\n" +
+                "('DIAP080'\r\n" +
+                "," + resultDataGH.send_date +
+                ",'1'\r\n" +
+                ",'44'\r\n" +
+                ",'QR'\r\n" +
+                "," + resultDataGH.send_data + "\r\n" +
+                "," + resultDataGH.send_date + "\r\n" +
+                "," + resultDataGH.vin + "\r\n" +
+                "," + resultDataGH.currentResultIdGH + "\r\n" +
+                "," + resultDataGH.currentProgramversion;
+
+            textBox1.Text = query;
+
+            while (true) { }
 
             if (startmemory == 1)
                 timer1.Start();
@@ -207,9 +279,6 @@ namespace TN8_to_MES
                 Start_btn.BackColor = Color.White;
             else
                 Start_btn.BackColor = Color.Red;
-
-
-
         }
 
         private void button1_Click(object sender, EventArgs e)
