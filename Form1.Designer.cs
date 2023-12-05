@@ -31,14 +31,18 @@
             components = new System.ComponentModel.Container();
             Start_btn = new Button();
             textBox1 = new TextBox();
-            timer1 = new System.Windows.Forms.Timer(components);
-            checkBox1 = new CheckBox();
-            button1 = new Button();
+            TimerCV = new System.Windows.Forms.Timer(components);
+            Stop_btn = new Button();
+            TimerGH = new System.Windows.Forms.Timer(components);
+            TimerJB = new System.Windows.Forms.Timer(components);
+            TimerCV_btn = new Button();
+            TimerGH_btn = new Button();
+            TimerJB_btn = new Button();
             SuspendLayout();
             // 
             // Start_btn
             // 
-            Start_btn.Location = new Point(151, 372);
+            Start_btn.Location = new Point(596, 481);
             Start_btn.Name = "Start_btn";
             Start_btn.Size = new Size(192, 52);
             Start_btn.TabIndex = 0;
@@ -51,41 +55,75 @@
             textBox1.Location = new Point(23, 12);
             textBox1.Multiline = true;
             textBox1.Name = "textBox1";
-            textBox1.Size = new Size(485, 320);
+            textBox1.ScrollBars = ScrollBars.Vertical;
+            textBox1.Size = new Size(548, 521);
             textBox1.TabIndex = 1;
+            textBox1.TextChanged += textBox1_TextChanged;
             // 
-            // timer1
+            // TimerCV
             // 
-            timer1.Interval = 500;
-            timer1.Tick += timer1_Tick;
+            TimerCV.Interval = 4000;
+            TimerCV.Tick += TimerCV_Tick;
             // 
-            // checkBox1
+            // Stop_btn
             // 
-            checkBox1.AutoSize = true;
-            checkBox1.Location = new Point(611, 102);
-            checkBox1.Name = "checkBox1";
-            checkBox1.Size = new Size(101, 24);
-            checkBox1.TabIndex = 2;
-            checkBox1.Text = "checkBox1";
-            checkBox1.UseVisualStyleBackColor = true;
+            Stop_btn.Location = new Point(596, 423);
+            Stop_btn.Name = "Stop_btn";
+            Stop_btn.Size = new Size(192, 52);
+            Stop_btn.TabIndex = 3;
+            Stop_btn.Text = "Stop";
+            Stop_btn.UseVisualStyleBackColor = true;
+            Stop_btn.Click += Stop_btn_Click;
             // 
-            // button1
+            // TimerGH
             // 
-            button1.Location = new Point(349, 372);
-            button1.Name = "button1";
-            button1.Size = new Size(192, 52);
-            button1.TabIndex = 3;
-            button1.Text = "Stop";
-            button1.UseVisualStyleBackColor = true;
-            button1.Click += button1_Click;
+            TimerGH.Interval = 2000;
+            TimerGH.Tick += TimerGH_Tick;
+            // 
+            // TimerJB
+            // 
+            TimerJB.Interval = 6000;
+            TimerJB.Tick += TimerJB_Tick;
+            // 
+            // TimerCV_btn
+            // 
+            TimerCV_btn.Location = new Point(590, 34);
+            TimerCV_btn.Name = "TimerCV_btn";
+            TimerCV_btn.Size = new Size(198, 60);
+            TimerCV_btn.TabIndex = 4;
+            TimerCV_btn.Text = "Requesting CV ";
+            TimerCV_btn.UseVisualStyleBackColor = true;
+            TimerCV_btn.Click += TimerCV_btn_Click;
+            // 
+            // TimerGH_btn
+            // 
+            TimerGH_btn.Location = new Point(590, 109);
+            TimerGH_btn.Name = "TimerGH_btn";
+            TimerGH_btn.Size = new Size(191, 60);
+            TimerGH_btn.TabIndex = 5;
+            TimerGH_btn.Text = "Requesting GH";
+            TimerGH_btn.UseVisualStyleBackColor = true;
+            TimerGH_btn.Click += TimerGH_btn_Click;
+            // 
+            // TimerJB_btn
+            // 
+            TimerJB_btn.Location = new Point(590, 189);
+            TimerJB_btn.Name = "TimerJB_btn";
+            TimerJB_btn.Size = new Size(191, 60);
+            TimerJB_btn.TabIndex = 6;
+            TimerJB_btn.Text = "Requesting JB";
+            TimerJB_btn.UseVisualStyleBackColor = true;
+            TimerJB_btn.Click += TimerJB_btn_Click;
             // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(800, 450);
-            Controls.Add(button1);
-            Controls.Add(checkBox1);
+            ClientSize = new Size(800, 545);
+            Controls.Add(TimerJB_btn);
+            Controls.Add(TimerGH_btn);
+            Controls.Add(TimerCV_btn);
+            Controls.Add(Stop_btn);
             Controls.Add(textBox1);
             Controls.Add(Start_btn);
             Name = "Form1";
@@ -98,8 +136,12 @@
 
         private Button Start_btn;
         private TextBox textBox1;
-        private System.Windows.Forms.Timer timer1;
-        private CheckBox checkBox1;
-        private Button button1;
+        private System.Windows.Forms.Timer TimerCV;
+        private Button Stop_btn;
+        private System.Windows.Forms.Timer TimerGH;
+        private System.Windows.Forms.Timer TimerJB;
+        private Button TimerCV_btn;
+        private Button TimerGH_btn;
+        private Button TimerJB_btn;
     }
 }

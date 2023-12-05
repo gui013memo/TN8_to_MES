@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
+    <BaseOutputPath>C:\Users\a00542721\OneDrive - ONEVIRTUALOFFICE\Documents\my\Temp</BaseOutputPath>
   </PropertyGroup>
 
   <ItemGroup>
