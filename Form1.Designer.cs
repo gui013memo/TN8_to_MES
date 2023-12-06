@@ -38,6 +38,10 @@
             TimerCV_btn = new Button();
             TimerGH_btn = new Button();
             TimerJB_btn = new Button();
+            label1 = new Label();
+            CV_checkBox = new CheckBox();
+            GH_checkBox = new CheckBox();
+            JB_checkBox = new CheckBox();
             SuspendLayout();
             // 
             // Start_btn
@@ -62,7 +66,7 @@
             // 
             // TimerCV
             // 
-            TimerCV.Interval = 4000;
+            TimerCV.Interval = 6000;
             TimerCV.Tick += TimerCV_Tick;
             // 
             // Stop_btn
@@ -77,12 +81,12 @@
             // 
             // TimerGH
             // 
-            TimerGH.Interval = 2000;
+            TimerGH.Interval = 3000;
             TimerGH.Tick += TimerGH_Tick;
             // 
             // TimerJB
             // 
-            TimerJB.Interval = 6000;
+            TimerJB.Interval = 9000;
             TimerJB.Tick += TimerJB_Tick;
             // 
             // TimerCV_btn
@@ -115,11 +119,60 @@
             TimerJB_btn.UseVisualStyleBackColor = true;
             TimerJB_btn.Click += TimerJB_btn_Click;
             // 
+            // label1
+            // 
+            label1.AutoSize = true;
+            label1.Location = new Point(629, 284);
+            label1.Name = "label1";
+            label1.Size = new Size(110, 20);
+            label1.TabIndex = 7;
+            label1.Text = "Enable request:";
+            // 
+            // CV_checkBox
+            // 
+            CV_checkBox.AutoSize = true;
+            CV_checkBox.Checked = true;
+            CV_checkBox.CheckState = CheckState.Checked;
+            CV_checkBox.Location = new Point(629, 316);
+            CV_checkBox.Name = "CV_checkBox";
+            CV_checkBox.Size = new Size(126, 24);
+            CV_checkBox.TabIndex = 8;
+            CV_checkBox.Text = "CV (Old Creta)";
+            CV_checkBox.UseVisualStyleBackColor = true;
+            // 
+            // GH_checkBox
+            // 
+            GH_checkBox.AutoSize = true;
+            GH_checkBox.Checked = true;
+            GH_checkBox.CheckState = CheckState.Checked;
+            GH_checkBox.Location = new Point(629, 346);
+            GH_checkBox.Name = "GH_checkBox";
+            GH_checkBox.Size = new Size(102, 24);
+            GH_checkBox.TabIndex = 9;
+            GH_checkBox.Text = "GH (HB20)";
+            GH_checkBox.UseVisualStyleBackColor = true;
+            // 
+            // JB_checkBox
+            // 
+            JB_checkBox.AutoSize = true;
+            JB_checkBox.Checked = true;
+            JB_checkBox.CheckState = CheckState.Checked;
+            JB_checkBox.Location = new Point(629, 376);
+            JB_checkBox.Name = "JB_checkBox";
+            JB_checkBox.Size = new Size(128, 24);
+            JB_checkBox.TabIndex = 10;
+            JB_checkBox.Text = "JB (New Creta)";
+            JB_checkBox.UseVisualStyleBackColor = true;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(800, 545);
+            Controls.Add(JB_checkBox);
+            Controls.Add(GH_checkBox);
+            Controls.Add(CV_checkBox);
+            Controls.Add(label1);
             Controls.Add(TimerJB_btn);
             Controls.Add(TimerGH_btn);
             Controls.Add(TimerCV_btn);
@@ -143,5 +196,9 @@
         private Button TimerCV_btn;
         private Button TimerGH_btn;
         private Button TimerJB_btn;
+        private Label label1;
+        private CheckBox CV_checkBox;
+        private CheckBox GH_checkBox;
+        private CheckBox JB_checkBox;
     }
 }

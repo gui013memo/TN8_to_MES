@@ -172,26 +172,33 @@ namespace TN8_to_MES
         {
             InitializeComponent();
             logger.Log("TN8_to_ME-app Opened");
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.FormIsClosing);
         }
 
-
+        private void FormIsClosing(object sender, FormClosingEventArgs e) //This is called when app is closed
+        {
+            logger.Log("TN8_to_ME-app Closed");
+        }
 
         private void Start_btn_Click(object sender, EventArgs e)
         {
-            TimerCV.Start();
-            //TimerGH.Start();
-            // TimerJB.Start();
-            startmemory = 1;
-
-            logger.Log("TN8_to_MES-app started");
+            if (GH_checkBox.Checked || CV_checkBox.Checked || JB_checkBox.Checked)
+            {
+                TimerCV.Start();
+                TimerGH.Start();
+                TimerJB.Start();
+                startmemory = 1;
+                logger.Log("TN8_to_MES-app started");
+            }
         }
 
-        private string CheckLastResultId(string carType)
+        private string CheckLastResultId(string resultId)
         {
             string output = string.Empty;
 
-            string query = @"SELECT TOP (1)       [CREATE_USER]      ,[RESULT_ID]
-                            FROM[ACDC_Test].[dbo].[Q_QUALITY_IF]     where CREATE_USER LIKE '%" + carType + "%'";
+            string query = @"SELECT [CREATE_USER], [RESULT_ID]
+                            FROM[ACDC_Test].[dbo].[RESULTID]
+                            where RESULT_ID = '" + resultId + "'";
 
             cnn = new SqlConnection(connectionString);
             cnn.Open();
@@ -211,11 +218,49 @@ namespace TN8_to_MES
             return output;
         }
 
+        private void InsertOnResultIdTable(ResultData resultData)
+        {
+            try
+            {
+                string sql = "insert into [dbo].[RESULTID] (SEND_DATE," +
+                    "SEND_DATA,CREATE_USER,RESULT_ID,PROGRAM_VERSION) " +
+                    "values (@SEND_DATE,@SEND_DATA," +
+                    "@CREATE_USER,@RESULT_ID,@PROGRAM_VERSION)";
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@SEND_DATE", resultData.send_date);
+                        cmd.Parameters.AddWithValue("@SEND_DATA", resultData.send_data);
+                        cmd.Parameters.AddWithValue("@CREATE_USER", resultData.vin);
+                        cmd.Parameters.AddWithValue("@RESULT_ID", resultData.currentResultId);
+                        cmd.Parameters.AddWithValue("@PROGRAM_VERSION", resultData.currentProgramversion);
+
+                        string rowsAffected = cmd.ExecuteNonQuery().ToString();
+                        logger.Log("SQL Insert [RESULTID] done, Rows affected: " +
+                            rowsAffected + "\r\nVIN: " + resultData.vin +
+                            "\r\nResultId: " + resultData.currentResultId);
+                    }
+                }
+            }
+            catch (SqlException ex)
+            {
+                string msg = "[RESULTID] Insert Error:";
+                msg += ex.Message;
+                textBox1.Text += "\r\n***** [RESULTID] SQL ERROR *****:\r\n" + msg + "\r\n";
+                logger.Log("\r\n***** SQL ERROR *****:\r\n" + msg + "\r\n" +
+                    "\r\nVIN: " + resultData.vin +
+                            "\r\nResultId: " + resultData.currentResultId);
+            }
+        }
+
         private async void TimerCV_Tick(object sender, EventArgs e)
         {
-            //textBox1.Text += "\r\nTest TimerCV\r\n";
+            if (!CV_checkBox.Checked)
+                TimerCV.Stop();
 
-            if (startmemory == 1)
+            if (startmemory == 1 && CV_checkBox.Checked)
             {
                 TimerCV.Stop();
                 textBox1.Text += "Timer CV tick occurred \r\n";
@@ -229,22 +274,31 @@ namespace TN8_to_MES
                 var httpClientCV = new HttpClient();
                 var respCV = await httpClientCV.GetAsync(httpRequest);
                 string strCV = await respCV.Content.ReadAsStringAsync();
-                textBox1.Text += "  Query DONE\r\n";
-                logger.Log("Request done: " + httpRequest);
+
 
                 var dataCV = JsonConvert.DeserializeObject<Data1>(strCV);
 
                 ResultDataCV.currentResultId = dataCV.Data[0].ResultMetaData.ResultId.ToString();
                 ResultDataCV.currentProgramversion = dataCV.Data[0].ResultMetaData.programVersionId;
 
-                if (ResultDataCV.currentResultId == CheckLastResultId("CV"))
+                textBox1.Text += "CV Request done: " + httpRequest + "\r\nResultId: " + ResultDataCV.currentResultId
+                    + "VIN: " + dataCV.Data[0].ResultMetaData.Tags[0].Value;
+                logger.Log("CV Request done: " + httpRequest + "\r\nResultId: " + ResultDataCV.currentResultId
+                    + "VIN: " + dataCV.Data[0].ResultMetaData.Tags[0].Value);
+
+                if (ResultDataCV.currentResultId == CheckLastResultId(ResultDataCV.currentResultId))
                 {
-                    textBox1.Text += "ResultId repeated, tightening disregarded";
-                    logger.Log("ResultId (" + ResultDataCV.currentResultId + "repeated, tightening disregarded");
+                    textBox1.Text += "\r\nResultId repeated (" + ResultDataCV.vin + "), tightening disregarded";
+                    logger.Log("ResultId (" + ResultDataCV.currentResultId +
+                        "\r\n(VIN: " + dataCV.Data[0].ResultMetaData.Tags[0].Value + ")");
                 }
                 else
                 {
-                    logger.Log("NEW ResultId (" + ResultDataCV.currentResultId + ")");
+                    InsertOnResultIdTable(ResultDataCV);
+
+                    logger.Log("NEW ResultId to INSERT (" + ResultDataCV.currentResultId + ")" +
+                        "\r\n(VIN: " + dataCV.Data[0].ResultMetaData.Tags[0].Value + ")");
+
                     ResultDataCV.vin = dataCV.Data[0].ResultMetaData.Tags[0].Value;
                     ResultDataCV.send_date = dataCV.Data[0].ResultMetaData.CreationTime.Replace("-", string.Empty);
                     ResultDataCV.send_date = ResultDataCV.send_date.Replace(":", string.Empty);
@@ -287,34 +341,35 @@ namespace TN8_to_MES
                                 cmd.Parameters.AddWithValue("@PROGRAM_VERSION", ResultDataCV.currentProgramversion);
 
                                 string rowsAffected = cmd.ExecuteNonQuery().ToString();
-                                textBox1.Text += "\r\n" + "Rows affected: " + rowsAffected;
-                                logger.Log("Rows affected: " + rowsAffected);
+                                textBox1.Text += "\r\n" + "SQL insert done, Rows affected: " + rowsAffected + "\r\n";
+                                logger.Log("SQL Insert done, Rows affected: " + rowsAffected);
                             }
                         }
                     }
                     catch (SqlException ex)
                     {
-                        string msg = "Insert Error:";
+                        string msg = "Q_QUALITY_IF Insert Error:";
                         msg += ex.Message;
-                        textBox1.Text += "\r\nSQL ERROR:\r\n" + msg + "\r\n";
-                        logger.Log("\r\nSQL ERROR:\r\n" + msg + "\r\n");
+                        textBox1.Text += "\r\n***** SQL ERROR *****:\r\n" + msg + "\r\n";
+                        logger.Log("\r\n***** SQL ERROR *****:\r\n" + msg + "\r\n");
                     }
                 }
 
-                textBox1.Text += "\r\n---------------------\r\n";
+                textBox1.Text += "End of CV Timer tick\r\n---------------------\r\n";
                 logger.Log("End of CV Timer tick");
                 TimerCV_btn.BackColor = Color.White;
 
-                if (startmemory == 1)
+                if (startmemory == 1 && CV_checkBox.Checked)
                     TimerCV.Start();
             }
         }
 
         private async void TimerGH_Tick(object sender, EventArgs e)
         {
-            //textBox1.Text += "\r\nTest TimerGH\r\n";
+            if (!GH_checkBox.Checked)
+                TimerGH.Stop();
 
-            if (startmemory == 1)
+            if (startmemory == 1 && GH_checkBox.Checked)
             {
                 TimerGH.Stop();
                 textBox1.Text += "Timer GH tick occurred \r\n";
@@ -328,7 +383,7 @@ namespace TN8_to_MES
                 var httpClientGH = new HttpClient();
                 var respGH = await httpClientGH.GetAsync(httpRequest);
                 string strGH = await respGH.Content.ReadAsStringAsync();
-                textBox1.Text += "  Query DONE\r\n";
+                textBox1.Text += " GH Query DONE\r\n";
                 logger.Log("Request done: " + httpRequest);
 
                 var dataGH = JsonConvert.DeserializeObject<Data1>(strGH);
@@ -337,7 +392,7 @@ namespace TN8_to_MES
                 ResultDataGH.currentProgramversion = dataGH.Data[0].ResultMetaData.programVersionId;
 
 
-                if (ResultDataGH.currentResultId == CheckLastResultId("GH"))
+                if (ResultDataGH.currentResultId == CheckLastResultId(ResultDataGH.currentResultId))
                 {
                     textBox1.Text += "ResultId repeated, tightening disregarded";
                     logger.Log("ResultId (" + ResultDataGH.currentResultId + "repeated, tightening disregarded");
@@ -400,104 +455,123 @@ namespace TN8_to_MES
                         logger.Log("\r\nSQL ERROR:\r\n" + msg + "\r\n");
                     }
                 }
+                TimerGH_btn.BackColor = Color.White;
+                textBox1.Text += "End of GH Timer tick\r\n---------------------\r\n";
+                logger.Log("End of GH Timer tick");
+
+                if (startmemory == 1 && GH_checkBox.Checked)
+                    TimerGH.Start();
             }
-
-            TimerGH_btn.BackColor = Color.White;
-            textBox1.Text += "\r\n---------------------\r\n";
-            logger.Log("End of CV Timer tick");
-
-            if (startmemory == 1)
-                TimerGH.Start();
         }
 
         private async void TimerJB_Tick(object sender, EventArgs e)
         {
-            // textBox1.Text += "\r\nTest TimerJB\r\n";
+            if (!JB_checkBox.Checked)
+                TimerJB.Stop();
 
-            if (startmemory == 1)
+            if (startmemory == 1 && JB_checkBox.Checked)
             {
                 TimerJB.Stop();
-                textBox1.Text += "Timer JB tick occurred";
+                textBox1.Text += "Timer JB tick occurred\r\n";
+                logger.Log("Timer JB tick occurred");
+
                 TimerJB_btn.BackColor = Color.Green;
 
                 ResultData ResultDataJB = new ResultData();
 
+                string httpRequest = "http://127.0.0.1:7110/api/v3/results/tightening?programId=0050D604FB07-3-1&limit=1";
                 var httpClientJB = new HttpClient();
-                var respJB = await httpClientJB.GetAsync("http://127.0.0.1:7110/api/v3/results/tightening?programId=0050D604FB07-3-1&limit=1");
+                var respJB = await httpClientJB.GetAsync(httpRequest);
                 string strJB = await respJB.Content.ReadAsStringAsync();
-                textBox1.Text += "  Query DONE\r\n";
+                textBox1.Text += " JB Query DONE\r\n";
+                logger.Log("Request done: " + httpRequest);
+
                 var dataJB = JsonConvert.DeserializeObject<Data1>(strJB);
                 textBox1.Text += dataJB.Data[0].ResultMetaData.Tags[0].Value + "\r\n";
 
                 ResultDataJB.currentResultId = dataJB.Data[0].ResultMetaData.ResultId.ToString();
                 ResultDataJB.currentProgramversion = dataJB.Data[0].ResultMetaData.programVersionId;
 
-                ResultDataJB.vin = dataJB.Data[0].ResultMetaData.Tags[0].Value;
-                ResultDataJB.send_date = dataJB.Data[0].ResultMetaData.CreationTime.Replace("-", string.Empty);
-                ResultDataJB.send_date = ResultDataJB.send_date.Replace(":", string.Empty);
-                ResultDataJB.send_date = ResultDataJB.send_date.Replace("T", string.Empty);
-                ResultDataJB.send_date = ResultDataJB.send_date.Substring(0, 14);
-                ResultDataJB.resultEvaluation = dataJB.Data[0].ResultContent[0].OverallResultValues[0].ResultEvaluation;
-                ResultDataJB.torque = dataJB.Data[0].ResultContent[0].OverallResultValues[0].Value.ToString();
-
-                ResultDataJB.send_data = ResultDataJB.vin +
-                    ";" + ResultDataJB.send_date.Substring(0, 8) +
-                    ";" + ResultDataJB.send_date.Substring(8, 6) +
-                    ";" + ResultDataJB.dev_id +
-                    ";" + ResultDataJB.resultEvaluation +
-                    ";" + ResultDataJB.torque + ";";
-
-                textBox1.Text += "      JB send data: " + ResultDataJB.send_data + "\r\n";
-                textBox1.Text += "      JB send date: " + ResultDataJB.send_date + "\r\n";
-
-
-                try
+                if (ResultDataJB.currentResultId == CheckLastResultId(ResultDataJB.currentResultId))
                 {
-                    string sql = "insert into [dbo].[Q_QUALITY_IF] (DEV_ID,SEND_DATE,SEND_SERIAL,DATA_SIZE,DATA_TYPE," +
-                        "SEND_DATA,CREATE_TIME,CREATE_USER,RESULT_ID,PROGRAM_VERSION) " +
-                        "values (@DEV_ID,@SEND_DATE,@SEND_SERIAL,@DATA_SIZE,@DATA_TYPE,@SEND_DATA,@CREATE_TIME," +
-                        "@CREATE_USER,@RESULT_ID,@PROGRAM_VERSION)";
-                    using (SqlConnection conn = new SqlConnection(connectionString))
-                    {
-                        conn.Open();
-                        using (SqlCommand cmd = new SqlCommand(sql, conn))
-                        {
-                            cmd.Parameters.AddWithValue("@DEV_ID", "DIAP080");
-                            cmd.Parameters.AddWithValue("@SEND_DATE", ResultDataJB.send_date);
-                            cmd.Parameters.AddWithValue("@SEND_SERIAL", "1");
-                            cmd.Parameters.AddWithValue("@DATA_SIZE", "44");
-                            cmd.Parameters.AddWithValue("@DATA_TYPE", "QR");
-                            cmd.Parameters.AddWithValue("@SEND_DATA", ResultDataJB.send_data);
-                            cmd.Parameters.AddWithValue("@CREATE_TIME", ResultDataJB.send_date);
-                            cmd.Parameters.AddWithValue("@CREATE_USER", ResultDataJB.vin);
-                            cmd.Parameters.AddWithValue("@RESULT_ID", ResultDataJB.currentResultId);
-                            cmd.Parameters.AddWithValue("@PROGRAM_VERSION", ResultDataJB.currentProgramversion);
+                    textBox1.Text += "ResultId repeated, tightening disregarded\r\n";
+                    logger.Log("ResultId (" + ResultDataJB.currentResultId + "repeated, tightening disregarded");
+                }
+                else
+                {
+                    logger.Log("NEW ResultId (" + ResultDataJB.currentResultId + ")");
+                    ResultDataJB.vin = dataJB.Data[0].ResultMetaData.Tags[0].Value;
+                    ResultDataJB.send_date = dataJB.Data[0].ResultMetaData.CreationTime.Replace("-", string.Empty);
+                    ResultDataJB.send_date = ResultDataJB.send_date.Replace(":", string.Empty);
+                    ResultDataJB.send_date = ResultDataJB.send_date.Replace("T", string.Empty);
+                    ResultDataJB.send_date = ResultDataJB.send_date.Substring(0, 14);
+                    ResultDataJB.resultEvaluation = dataJB.Data[0].ResultContent[0].OverallResultValues[0].ResultEvaluation;
+                    ResultDataJB.torque = dataJB.Data[0].ResultContent[0].OverallResultValues[0].Value.ToString();
 
-                            string rowsAffected = cmd.ExecuteNonQuery().ToString();
-                            textBox1.Text += "\r\n" + "Rows affected: " + rowsAffected;
-                            logger.Log("Rows affected: " + rowsAffected);
+                    ResultDataJB.send_data = ResultDataJB.vin +
+                        ";" + ResultDataJB.send_date.Substring(0, 8) +
+                        ";" + ResultDataJB.send_date.Substring(8, 6) +
+                        ";" + ResultDataJB.dev_id +
+                        ";" + ResultDataJB.resultEvaluation +
+                        ";" + ResultDataJB.torque + ";";
+
+                    textBox1.Text += "      JB send data: " + ResultDataJB.send_data + "\r\n";
+                    textBox1.Text += "      JB send date: " + ResultDataJB.send_date + "\r\n";
+
+
+                    try
+                    {
+                        string sql = "insert into [dbo].[Q_QUALITY_IF] (DEV_ID,SEND_DATE,SEND_SERIAL,DATA_SIZE,DATA_TYPE," +
+                            "SEND_DATA,CREATE_TIME,CREATE_USER,RESULT_ID,PROGRAM_VERSION) " +
+                            "values (@DEV_ID,@SEND_DATE,@SEND_SERIAL,@DATA_SIZE,@DATA_TYPE,@SEND_DATA,@CREATE_TIME," +
+                            "@CREATE_USER,@RESULT_ID,@PROGRAM_VERSION)";
+                        using (SqlConnection conn = new SqlConnection(connectionString))
+                        {
+                            conn.Open();
+                            using (SqlCommand cmd = new SqlCommand(sql, conn))
+                            {
+                                cmd.Parameters.AddWithValue("@DEV_ID", "DIAP080");
+                                cmd.Parameters.AddWithValue("@SEND_DATE", ResultDataJB.send_date);
+                                cmd.Parameters.AddWithValue("@SEND_SERIAL", "1");
+                                cmd.Parameters.AddWithValue("@DATA_SIZE", "44");
+                                cmd.Parameters.AddWithValue("@DATA_TYPE", "QR");
+                                cmd.Parameters.AddWithValue("@SEND_DATA", ResultDataJB.send_data);
+                                cmd.Parameters.AddWithValue("@CREATE_TIME", ResultDataJB.send_date);
+                                cmd.Parameters.AddWithValue("@CREATE_USER", ResultDataJB.vin);
+                                cmd.Parameters.AddWithValue("@RESULT_ID", ResultDataJB.currentResultId);
+                                cmd.Parameters.AddWithValue("@PROGRAM_VERSION", ResultDataJB.currentProgramversion);
+
+                                string rowsAffected = cmd.ExecuteNonQuery().ToString();
+                                textBox1.Text += "\r\n" + "Rows affected: " + rowsAffected;
+                                logger.Log("Rows affected: " + rowsAffected);
+                            }
                         }
                     }
+                    catch (SqlException ex)
+                    {
+                        string msg = "Insert Error:";
+                        msg += ex.Message;
+                        textBox1.Text += "\r\nSQL ERROR:\r\n" + msg + "\r\n";
+                        logger.Log("\r\nSQL ERROR:\r\n" + msg + "\r\n");
+                    }
                 }
-                catch (SqlException ex)
-                {
-                    string msg = "Insert Error:";
-                    msg += ex.Message;
-                    textBox1.Text += "\r\nSQL ERROR:\r\n" + msg + "\r\n";
-                }
-                textBox1.Text += "\r\n************END************\r\n";
                 TimerJB_btn.BackColor = Color.White;
-            }
+                textBox1.Text += "End of JB Timer tick\r\n---------------------\r\n";
+                logger.Log("End of JB Timer tick \r\n");
 
-            if (startmemory == 1)
-                TimerJB.Start();
+                if (startmemory == 1 && JB_checkBox.Checked)
+                    TimerJB.Start();
+            }
         }
+
         private void Stop_btn_Click(object sender, EventArgs e)
         {
             startmemory = 0;
             TimerCV.Stop();
             TimerGH.Stop();
             TimerJB.Stop();
+            textBox1.Text += "App stopped";
+            logger.Log("TN8_to_MES-App stopped");
         }
 
         private void TimerCV_btn_Click(object sender, EventArgs e)
