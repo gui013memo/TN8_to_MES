@@ -272,102 +272,110 @@ namespace TN8_to_MES
                 var respCV = await httpClientCV.GetAsync(httpRequest);
                 string strCV = await respCV.Content.ReadAsStringAsync();
 
-
-                var dataCV = JsonConvert.DeserializeObject<Data1>(strCV);
-
-                ResultDataCV.currentResultId = dataCV.Data[0].ResultMetaData.ResultId.ToString();
-                ResultDataCV.currentProgramversion = dataCV.Data[0].ResultMetaData.programVersionId;
-                ResultDataCV.vin = dataCV.Data[0].ResultMetaData.Tags[0].Value;
-
-                textBox1.Text += "CV Request done: " + httpRequest + "\r\nResultId: " + ResultDataCV.currentResultId
-                    + "   VIN: " + dataCV.Data[0].ResultMetaData.Tags[0].Value;
-                logger.Log("CV Request done: " + httpRequest + "\r\nResultId: " + ResultDataCV.currentResultId
-                    + "   VIN: " + dataCV.Data[0].ResultMetaData.Tags[0].Value);
-
-                string resultCompare = "";
-                resultCompare = CheckLastResultId(ResultDataCV.currentResultId);
-
-                if (ResultDataCV.currentResultId == resultCompare)
+                if (strCV.Contains("error"))
                 {
-                    textBox1.Text += "\r\nResultId repeated (" + ResultDataCV.vin + "), tightening disregarded" +
-                        "\r\nResultId on [RESULTID]Table: " + resultCompare;
-
-                    logger.Log("ResultId (" + ResultDataCV.currentResultId +
-                        "\r\n(VIN: " + dataCV.Data[0].ResultMetaData.Tags[0].Value + ")" +
-                        "\r\nResultId on [RESULTID]Table: " + resultCompare);
+                    logger.Log("Result ran into a error: \r\n" +
+                        "RAW JSON: " + strCV);
+                    textBox1.Text = "Error on get results";
+                    TimerCV.Start();
                 }
                 else
                 {
-                    InsertOnResultIdTable(ResultDataCV);
-
-                    textBox1.Text += "\r\nNEW ResultId to INSERT (" + ResultDataCV.currentResultId + ")" +
-                        "\r\n(VIN: " + dataCV.Data[0].ResultMetaData.Tags[0].Value + ")";
-                    logger.Log("NEW ResultId to INSERT (" + ResultDataCV.currentResultId + ")" +
-                        "\r\n(VIN: " + dataCV.Data[0].ResultMetaData.Tags[0].Value + ")");
-
+                    var dataCV = JsonConvert.DeserializeObject<Data1>(strCV);
+                    ResultDataCV.currentResultId = dataCV.Data[0].ResultMetaData.ResultId.ToString();
+                    ResultDataCV.currentProgramversion = dataCV.Data[0].ResultMetaData.programVersionId;
                     ResultDataCV.vin = dataCV.Data[0].ResultMetaData.Tags[0].Value;
-                    ResultDataCV.send_date = dataCV.Data[0].ResultMetaData.CreationTime.Replace("-", string.Empty);
-                    ResultDataCV.send_date = ResultDataCV.send_date.Replace(":", string.Empty);
-                    ResultDataCV.send_date = ResultDataCV.send_date.Replace("T", string.Empty);
-                    ResultDataCV.send_date = ResultDataCV.send_date.Substring(0, 14);
-                    ResultDataCV.resultEvaluation = dataCV.Data[0].ResultContent[0].OverallResultValues[0].ResultEvaluation;
-                    ResultDataCV.torque = dataCV.Data[0].ResultContent[0].OverallResultValues[0].Value.ToString();
 
-                    ResultDataCV.send_data = ResultDataCV.vin +
-                        ";" + ResultDataCV.send_date.Substring(0, 8) +
-                        ";" + ResultDataCV.send_date.Substring(8, 6) +
-                        ";" + ResultDataCV.dev_id +
-                        ";" + ResultDataCV.resultEvaluation +
-                        ";" + ResultDataCV.torque + ";";
+                    textBox1.Text += "CV Request done: " + httpRequest + "\r\nResultId: " + ResultDataCV.currentResultId
+                        + "   VIN: " + dataCV.Data[0].ResultMetaData.Tags[0].Value;
+                    logger.Log("CV Request done: " + httpRequest + "\r\nResultId: " + ResultDataCV.currentResultId
+                        + "   VIN: " + dataCV.Data[0].ResultMetaData.Tags[0].Value);
 
-                    textBox1.Text += "\r\n      CV send data: " + ResultDataCV.send_data + "\r\n";
-                    textBox1.Text += "\r\n      CV send date: " + ResultDataCV.send_date + "\r\n";
-                    logger.Log("CV SEND_DATA to SQL Server: \r\n" + ResultDataCV.send_data);
+                    string resultCompare = "";
+                    resultCompare = CheckLastResultId(ResultDataCV.currentResultId);
 
-                    try
+                    if (ResultDataCV.currentResultId == resultCompare)
                     {
-                        string sql = "insert into [dbo].[Q_QUALITY_IF] (DEV_ID,SEND_DATE,SEND_SERIAL,DATA_SIZE,DATA_TYPE," +
-                            "SEND_DATA,CREATE_TIME,CREATE_USER,RESULT_ID,PROGRAM_VERSION) " +
-                            "values (@DEV_ID,@SEND_DATE,@SEND_SERIAL,@DATA_SIZE,@DATA_TYPE,@SEND_DATA,@CREATE_TIME," +
-                            "@CREATE_USER,@RESULT_ID,@PROGRAM_VERSION)";
-                        using (SqlConnection conn = new SqlConnection(connectionString))
-                        {
-                            conn.Open();
-                            using (SqlCommand cmd = new SqlCommand(sql, conn))
-                            {
-                                cmd.Parameters.AddWithValue("@DEV_ID", "DIAP080");
-                                cmd.Parameters.AddWithValue("@SEND_DATE", ResultDataCV.send_date);
-                                cmd.Parameters.AddWithValue("@SEND_SERIAL", "1");
-                                cmd.Parameters.AddWithValue("@DATA_SIZE", "44");
-                                cmd.Parameters.AddWithValue("@DATA_TYPE", "QR");
-                                cmd.Parameters.AddWithValue("@SEND_DATA", ResultDataCV.send_data);
-                                cmd.Parameters.AddWithValue("@CREATE_TIME", ResultDataCV.send_date);
-                                cmd.Parameters.AddWithValue("@CREATE_USER", ResultDataCV.vin);
-                                cmd.Parameters.AddWithValue("@RESULT_ID", ResultDataCV.currentResultId);
-                                cmd.Parameters.AddWithValue("@PROGRAM_VERSION", ResultDataCV.currentProgramversion);
+                        textBox1.Text += "\r\nResultId repeated (" + ResultDataCV.vin + "), tightening disregarded" +
+                            "\r\nResultId on [RESULTID]Table: " + resultCompare;
 
-                                string rowsAffected = cmd.ExecuteNonQuery().ToString();
-                                textBox1.Text += "\r\n" + "[QUALITY_IF] SQL insert done, Rows affected: " + rowsAffected + "\r\n";
-                                logger.Log("SQL Insert done, Rows affected: " + rowsAffected
-                                    + "\r\n TRANSACTION: " + cmd.CommandText + "\r\n");
+                        logger.Log("ResultId REPEATED  (" + ResultDataCV.currentResultId +
+                            "\r\n(VIN: " + dataCV.Data[0].ResultMetaData.Tags[0].Value + ")" +
+                            "\r\nResultId on [RESULTID]Table: " + resultCompare + "tightening disregarded");
+                    }
+                    else
+                    {
+                        InsertOnResultIdTable(ResultDataCV);
+
+                        textBox1.Text += "\r\nNEW ResultId to INSERT (" + ResultDataCV.currentResultId + ")" +
+                            "\r\n(VIN: " + dataCV.Data[0].ResultMetaData.Tags[0].Value + ")";
+                        logger.Log("NEW ResultId to INSERT (" + ResultDataCV.currentResultId + ")" +
+                            "\r\n(VIN: " + dataCV.Data[0].ResultMetaData.Tags[0].Value + ")");
+
+                        ResultDataCV.vin = dataCV.Data[0].ResultMetaData.Tags[0].Value;
+                        ResultDataCV.send_date = dataCV.Data[0].ResultMetaData.CreationTime.Replace("-", string.Empty);
+                        ResultDataCV.send_date = ResultDataCV.send_date.Replace(":", string.Empty);
+                        ResultDataCV.send_date = ResultDataCV.send_date.Replace("T", string.Empty);
+                        ResultDataCV.send_date = ResultDataCV.send_date.Substring(0, 14);
+                        ResultDataCV.resultEvaluation = dataCV.Data[0].ResultContent[0].OverallResultValues[0].ResultEvaluation;
+                        ResultDataCV.torque = dataCV.Data[0].ResultContent[0].OverallResultValues[0].Value.ToString();
+
+                        ResultDataCV.send_data = ResultDataCV.vin +
+                            ";" + ResultDataCV.send_date.Substring(0, 8) +
+                            ";" + ResultDataCV.send_date.Substring(8, 6) +
+                            ";" + ResultDataCV.dev_id +
+                            ";" + ResultDataCV.resultEvaluation +
+                            ";" + ResultDataCV.torque + ";";
+
+                        textBox1.Text += "\r\n      CV send data: " + ResultDataCV.send_data + "\r\n";
+                        textBox1.Text += "\r\n      CV send date: " + ResultDataCV.send_date + "\r\n";
+                        logger.Log("CV SEND_DATA to SQL Server: \r\n" + ResultDataCV.send_data);
+
+                        try
+                        {
+                            string sql = "insert into [dbo].[Q_QUALITY_IF] (DEV_ID,SEND_DATE,SEND_SERIAL,DATA_SIZE,DATA_TYPE," +
+                                "SEND_DATA,CREATE_TIME,CREATE_USER,RESULT_ID,PROGRAM_VERSION) " +
+                                "values (@DEV_ID,@SEND_DATE,@SEND_SERIAL,@DATA_SIZE,@DATA_TYPE,@SEND_DATA,@CREATE_TIME," +
+                                "@CREATE_USER,@RESULT_ID,@PROGRAM_VERSION)";
+                            using (SqlConnection conn = new SqlConnection(connectionString))
+                            {
+                                conn.Open();
+                                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                                {
+                                    cmd.Parameters.AddWithValue("@DEV_ID", "DIAP080");
+                                    cmd.Parameters.AddWithValue("@SEND_DATE", ResultDataCV.send_date);
+                                    cmd.Parameters.AddWithValue("@SEND_SERIAL", "1");
+                                    cmd.Parameters.AddWithValue("@DATA_SIZE", "44");
+                                    cmd.Parameters.AddWithValue("@DATA_TYPE", "QR");
+                                    cmd.Parameters.AddWithValue("@SEND_DATA", ResultDataCV.send_data);
+                                    cmd.Parameters.AddWithValue("@CREATE_TIME", ResultDataCV.send_date);
+                                    cmd.Parameters.AddWithValue("@CREATE_USER", ResultDataCV.vin);
+                                    cmd.Parameters.AddWithValue("@RESULT_ID", ResultDataCV.currentResultId);
+                                    cmd.Parameters.AddWithValue("@PROGRAM_VERSION", ResultDataCV.currentProgramversion);
+
+                                    string rowsAffected = cmd.ExecuteNonQuery().ToString();
+                                    textBox1.Text += "\r\n" + "[QUALITY_IF] SQL insert done, Rows affected: " + rowsAffected + "\r\n";
+                                    logger.Log("SQL Insert done, Rows affected: " + rowsAffected
+                                        + "\r\n TRANSACTION: " + cmd.CommandText + "\r\n");
+                                }
                             }
                         }
+                        catch (SqlException ex)
+                        {
+                            string msg = "Q_QUALITY_IF Insert Error:";
+                            msg += ex.Message;
+                            textBox1.Text += "\r\n***** SQL ERROR *****:\r\n" + msg + "\r\n";
+                            logger.Log("\r\n***** SQL ERROR *****:\r\n" + msg + "\r\n");
+                        }
                     }
-                    catch (SqlException ex)
-                    {
-                        string msg = "Q_QUALITY_IF Insert Error:";
-                        msg += ex.Message;
-                        textBox1.Text += "\r\n***** SQL ERROR *****:\r\n" + msg + "\r\n";
-                        logger.Log("\r\n***** SQL ERROR *****:\r\n" + msg + "\r\n");
-                    }
+
+                    textBox1.Text += "\r\nEnd of CV Timer tick\r\n---------------------\r\n";
+                    logger.Log("End of CV Timer tick");
+                    TimerCV_btn.BackColor = Color.White;
+
+                    if (startmemory == 1 && CV_checkBox.Checked)
+                        TimerCV.Start();
                 }
-
-                textBox1.Text += "\r\nEnd of CV Timer tick\r\n---------------------\r\n";
-                logger.Log("End of CV Timer tick");
-                TimerCV_btn.BackColor = Color.White;
-
-                if (startmemory == 1 && CV_checkBox.Checked)
-                    TimerCV.Start();
             }
         }
 
@@ -391,102 +399,111 @@ namespace TN8_to_MES
                 var respGH = await httpClientGH.GetAsync(httpRequest);
                 string strGH = await respGH.Content.ReadAsStringAsync();
 
-
-                var dataGH = JsonConvert.DeserializeObject<Data1>(strGH);
-
-                ResultDataGH.currentResultId = dataGH.Data[0].ResultMetaData.ResultId.ToString();
-                ResultDataGH.currentProgramversion = dataGH.Data[0].ResultMetaData.programVersionId;
-                ResultDataGH.vin = dataGH.Data[0].ResultMetaData.Tags[0].Value;
-
-                textBox1.Text += "GH Request done: " + httpRequest + "\r\nResultId: " + ResultDataGH.currentResultId
-                    + "   VIN: " + dataGH.Data[0].ResultMetaData.Tags[0].Value;
-                logger.Log("GH Request done: " + httpRequest + "\r\nResultId: " + ResultDataGH.currentResultId
-                    + "   VIN: " + dataGH.Data[0].ResultMetaData.Tags[0].Value);
-
-                string resultCompare = "";
-                resultCompare = CheckLastResultId(ResultDataGH.currentResultId);
-
-                if (ResultDataGH.currentResultId == resultCompare)
+                if (strGH.Contains("error"))
                 {
-                    textBox1.Text += "\r\nResultId repeated (" + ResultDataGH.vin + "), tightening disregarded" +
-                        "\r\nResultId on [RESULTID]Table: " + resultCompare;
-
-                    logger.Log("ResultId (" + ResultDataGH.currentResultId +
-                        "\r\n(VIN: " + dataGH.Data[0].ResultMetaData.Tags[0].Value + ")" +
-                        "\r\nResultId on [RESULTID]Table: " + resultCompare);
+                    logger.Log("Result ran into a error: \r\n" +
+                        "RAW JSON: " + strGH);
+                    textBox1.Text = "Error on get results";
+                    TimerGH.Start();
                 }
                 else
                 {
-                    InsertOnResultIdTable(ResultDataGH);
+                    var dataGH = JsonConvert.DeserializeObject<Data1>(strGH);
 
-                    textBox1.Text += "\r\nNEW ResultId to INSERT (" + ResultDataGH.currentResultId + ")" +
-                        "\r\n(VIN: " + dataGH.Data[0].ResultMetaData.Tags[0].Value + ")";
-                    logger.Log("NEW ResultId to INSERT (" + ResultDataGH.currentResultId + ")" +
-                        "\r\n(VIN: " + dataGH.Data[0].ResultMetaData.Tags[0].Value + ")");
-
+                    ResultDataGH.currentResultId = dataGH.Data[0].ResultMetaData.ResultId.ToString();
+                    ResultDataGH.currentProgramversion = dataGH.Data[0].ResultMetaData.programVersionId;
                     ResultDataGH.vin = dataGH.Data[0].ResultMetaData.Tags[0].Value;
-                    ResultDataGH.send_date = dataGH.Data[0].ResultMetaData.CreationTime.Replace("-", string.Empty);
-                    ResultDataGH.send_date = ResultDataGH.send_date.Replace(":", string.Empty);
-                    ResultDataGH.send_date = ResultDataGH.send_date.Replace("T", string.Empty);
-                    ResultDataGH.send_date = ResultDataGH.send_date.Substring(0, 14);
-                    ResultDataGH.resultEvaluation = dataGH.Data[0].ResultContent[0].OverallResultValues[0].ResultEvaluation;
-                    ResultDataGH.torque = dataGH.Data[0].ResultContent[0].OverallResultValues[0].Value.ToString();
 
-                    ResultDataGH.send_data = ResultDataGH.vin +
-                        ";" + ResultDataGH.send_date.Substring(0, 8) +
-                        ";" + ResultDataGH.send_date.Substring(8, 6) +
-                        ";" + ResultDataGH.dev_id +
-                        ";" + ResultDataGH.resultEvaluation +
-                        ";" + ResultDataGH.torque + ";";
+                    textBox1.Text += "GH Request done: " + httpRequest + "\r\nResultId: " + ResultDataGH.currentResultId
+                        + "   VIN: " + dataGH.Data[0].ResultMetaData.Tags[0].Value;
+                    logger.Log("GH Request done: " + httpRequest + "\r\nResultId: " + ResultDataGH.currentResultId
+                        + "   VIN: " + dataGH.Data[0].ResultMetaData.Tags[0].Value);
 
-                    textBox1.Text += "\r\n      GH send data: " + ResultDataGH.send_data + "\r\n";
-                    textBox1.Text += "\r\n      GH send date: " + ResultDataGH.send_date + "\r\n";
-                    logger.Log("GH SEND_DATA to SQL Server: \r\n" + ResultDataGH.send_data);
+                    string resultCompare = "";
+                    resultCompare = CheckLastResultId(ResultDataGH.currentResultId);
 
-                    try
+                    if (ResultDataGH.currentResultId == resultCompare)
                     {
-                        string sql = "insert into [dbo].[Q_QUALITY_IF] (DEV_ID,SEND_DATE,SEND_SERIAL,DATA_SIZE,DATA_TYPE," +
-                            "SEND_DATA,CREATE_TIME,CREATE_USER,RESULT_ID,PROGRAM_VERSION) " +
-                            "values (@DEV_ID,@SEND_DATE,@SEND_SERIAL,@DATA_SIZE,@DATA_TYPE,@SEND_DATA,@CREATE_TIME," +
-                            "@CREATE_USER,@RESULT_ID,@PROGRAM_VERSION)";
-                        using (SqlConnection conn = new SqlConnection(connectionString))
-                        {
-                            conn.Open();
-                            using (SqlCommand cmd = new SqlCommand(sql, conn))
-                            {
-                                cmd.Parameters.AddWithValue("@DEV_ID", "DIAP080");
-                                cmd.Parameters.AddWithValue("@SEND_DATE", ResultDataGH.send_date);
-                                cmd.Parameters.AddWithValue("@SEND_SERIAL", "1");
-                                cmd.Parameters.AddWithValue("@DATA_SIZE", "44");
-                                cmd.Parameters.AddWithValue("@DATA_TYPE", "QR");
-                                cmd.Parameters.AddWithValue("@SEND_DATA", ResultDataGH.send_data);
-                                cmd.Parameters.AddWithValue("@CREATE_TIME", ResultDataGH.send_date);
-                                cmd.Parameters.AddWithValue("@CREATE_USER", ResultDataGH.vin);
-                                cmd.Parameters.AddWithValue("@RESULT_ID", ResultDataGH.currentResultId);
-                                cmd.Parameters.AddWithValue("@PROGRAM_VERSION", ResultDataGH.currentProgramversion);
+                        textBox1.Text += "\r\nResultId repeated (" + ResultDataGH.vin + "), tightening disregarded" +
+                            "\r\nResultId on [RESULTID]Table: " + resultCompare;
 
-                                string rowsAffected = cmd.ExecuteNonQuery().ToString();
-                                textBox1.Text += "\r\n" + "[QUALITY_IF] SQL insert done, Rows affected: " + rowsAffected + "\r\n";
-                                logger.Log("SQL Insert done, Rows affected: " + rowsAffected
-                                    + "\r\n TRANSACTION: " + cmd.CommandText + "\r\n");
+                        logger.Log("ResultId repeated(" + ResultDataGH.currentResultId +
+                            "\r\n(VIN: " + dataGH.Data[0].ResultMetaData.Tags[0].Value + ")" +
+                            "\r\nResultId on [RESULTID]Table: " + resultCompare);
+                    }
+                    else
+                    {
+                        InsertOnResultIdTable(ResultDataGH);
+
+                        textBox1.Text += "\r\nNEW ResultId to INSERT (" + ResultDataGH.currentResultId + ")" +
+                            "\r\n(VIN: " + dataGH.Data[0].ResultMetaData.Tags[0].Value + ")";
+                        logger.Log("NEW ResultId to INSERT (" + ResultDataGH.currentResultId + ")" +
+                            "\r\n(VIN: " + dataGH.Data[0].ResultMetaData.Tags[0].Value + ")");
+
+                        ResultDataGH.vin = dataGH.Data[0].ResultMetaData.Tags[0].Value;
+                        ResultDataGH.send_date = dataGH.Data[0].ResultMetaData.CreationTime.Replace("-", string.Empty);
+                        ResultDataGH.send_date = ResultDataGH.send_date.Replace(":", string.Empty);
+                        ResultDataGH.send_date = ResultDataGH.send_date.Replace("T", string.Empty);
+                        ResultDataGH.send_date = ResultDataGH.send_date.Substring(0, 14);
+                        ResultDataGH.resultEvaluation = dataGH.Data[0].ResultContent[0].OverallResultValues[0].ResultEvaluation;
+                        ResultDataGH.torque = dataGH.Data[0].ResultContent[0].OverallResultValues[0].Value.ToString();
+
+                        ResultDataGH.send_data = ResultDataGH.vin +
+                            ";" + ResultDataGH.send_date.Substring(0, 8) +
+                            ";" + ResultDataGH.send_date.Substring(8, 6) +
+                            ";" + ResultDataGH.dev_id +
+                            ";" + ResultDataGH.resultEvaluation +
+                            ";" + ResultDataGH.torque + ";";
+
+                        textBox1.Text += "\r\n      GH send data: " + ResultDataGH.send_data + "\r\n";
+                        textBox1.Text += "\r\n      GH send date: " + ResultDataGH.send_date + "\r\n";
+                        logger.Log("GH SEND_DATA to SQL Server: \r\n" + ResultDataGH.send_data);
+
+                        try
+                        {
+                            string sql = "insert into [dbo].[Q_QUALITY_IF] (DEV_ID,SEND_DATE,SEND_SERIAL,DATA_SIZE,DATA_TYPE," +
+                                "SEND_DATA,CREATE_TIME,CREATE_USER,RESULT_ID,PROGRAM_VERSION) " +
+                                "values (@DEV_ID,@SEND_DATE,@SEND_SERIAL,@DATA_SIZE,@DATA_TYPE,@SEND_DATA,@CREATE_TIME," +
+                                "@CREATE_USER,@RESULT_ID,@PROGRAM_VERSION)";
+                            using (SqlConnection conn = new SqlConnection(connectionString))
+                            {
+                                conn.Open();
+                                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                                {
+                                    cmd.Parameters.AddWithValue("@DEV_ID", "DIAP080");
+                                    cmd.Parameters.AddWithValue("@SEND_DATE", ResultDataGH.send_date);
+                                    cmd.Parameters.AddWithValue("@SEND_SERIAL", "1");
+                                    cmd.Parameters.AddWithValue("@DATA_SIZE", "44");
+                                    cmd.Parameters.AddWithValue("@DATA_TYPE", "QR");
+                                    cmd.Parameters.AddWithValue("@SEND_DATA", ResultDataGH.send_data);
+                                    cmd.Parameters.AddWithValue("@CREATE_TIME", ResultDataGH.send_date);
+                                    cmd.Parameters.AddWithValue("@CREATE_USER", ResultDataGH.vin);
+                                    cmd.Parameters.AddWithValue("@RESULT_ID", ResultDataGH.currentResultId);
+                                    cmd.Parameters.AddWithValue("@PROGRAM_VERSION", ResultDataGH.currentProgramversion);
+
+                                    string rowsAffected = cmd.ExecuteNonQuery().ToString();
+                                    textBox1.Text += "\r\n" + "[QUALITY_IF] SQL insert done, Rows affected: " + rowsAffected + "\r\n";
+                                    logger.Log("SQL Insert done, Rows affected: " + rowsAffected
+                                        + "\r\n TRANSACTION: " + cmd.CommandText + "\r\n");
+                                }
                             }
                         }
+                        catch (SqlException ex)
+                        {
+                            string msg = "Q_QUALITY_IF Insert Error:";
+                            msg += ex.Message;
+                            textBox1.Text += "\r\n***** SQL ERROR *****:\r\n" + msg + "\r\n";
+                            logger.Log("\r\n***** SQL ERROR *****:\r\n" + msg + "\r\n");
+                        }
                     }
-                    catch (SqlException ex)
-                    {
-                        string msg = "Q_QUALITY_IF Insert Error:";
-                        msg += ex.Message;
-                        textBox1.Text += "\r\n***** SQL ERROR *****:\r\n" + msg + "\r\n";
-                        logger.Log("\r\n***** SQL ERROR *****:\r\n" + msg + "\r\n");
-                    }
+
+                    textBox1.Text += "\r\nEnd of GH Timer tick\r\n---------------------\r\n";
+                    logger.Log("End of GH Timer tick");
+                    TimerGH_btn.BackColor = Color.White;
+
+                    if (startmemory == 1 && GH_checkBox.Checked)
+                        TimerGH.Start();
                 }
-
-                textBox1.Text += "\r\nEnd of GH Timer tick\r\n---------------------\r\n";
-                logger.Log("End of GH Timer tick");
-                TimerGH_btn.BackColor = Color.White;
-
-                if (startmemory == 1 && GH_checkBox.Checked)
-                    TimerGH.Start();
             }
         }
 
@@ -510,102 +527,112 @@ namespace TN8_to_MES
                 var respJB = await httpClientJB.GetAsync(httpRequest);
                 string strJB = await respJB.Content.ReadAsStringAsync();
 
-
-                var dataJB = JsonConvert.DeserializeObject<Data1>(strJB);
-
-                ResultDataJB.currentResultId = dataJB.Data[0].ResultMetaData.ResultId.ToString();
-                ResultDataJB.currentProgramversion = dataJB.Data[0].ResultMetaData.programVersionId;
-                ResultDataJB.vin = dataJB.Data[0].ResultMetaData.Tags[0].Value;
-
-                textBox1.Text += "JB Request done: " + httpRequest + "\r\nResultId: " + ResultDataJB.currentResultId
-                    + "   VIN: " + dataJB.Data[0].ResultMetaData.Tags[0].Value;
-                logger.Log("JB Request done: " + httpRequest + "\r\nResultId: " + ResultDataJB.currentResultId
-                    + "   VIN: " + dataJB.Data[0].ResultMetaData.Tags[0].Value);
-
-                string resultCompare = "";
-                resultCompare = CheckLastResultId(ResultDataJB.currentResultId);
-
-                if (ResultDataJB.currentResultId == resultCompare)
+                if (strJB.Contains("error"))
                 {
-                    textBox1.Text += "\r\nResultId repeated (" + ResultDataJB.vin + "), tiJBtening disregarded" +
-                        "\r\nResultId on [RESULTID]Table: " + resultCompare;
-
-                    logger.Log("ResultId (" + ResultDataJB.currentResultId +
-                        "\r\n(VIN: " + dataJB.Data[0].ResultMetaData.Tags[0].Value + ")" +
-                        "\r\nResultId on [RESULTID]Table: " + resultCompare);
+                    logger.Log("Result ran into a error: \r\n" +
+                        "RAW JSON: " + strJB);
+                    textBox1.Text = "Error on get results";
+                    TimerJB.Start();
                 }
                 else
                 {
-                    InsertOnResultIdTable(ResultDataJB);
+                    var dataJB = JsonConvert.DeserializeObject<Data1>(strJB);
 
-                    textBox1.Text += "\r\nNEW ResultId to INSERT (" + ResultDataJB.currentResultId + ")" +
-                        "\r\n(VIN: " + dataJB.Data[0].ResultMetaData.Tags[0].Value + ")";
-                    logger.Log("NEW ResultId to INSERT (" + ResultDataJB.currentResultId + ")" +
-                        "\r\n(VIN: " + dataJB.Data[0].ResultMetaData.Tags[0].Value + ")");
-
+                    ResultDataJB.currentResultId = dataJB.Data[0].ResultMetaData.ResultId.ToString();
+                    ResultDataJB.currentProgramversion = dataJB.Data[0].ResultMetaData.programVersionId;
                     ResultDataJB.vin = dataJB.Data[0].ResultMetaData.Tags[0].Value;
-                    ResultDataJB.send_date = dataJB.Data[0].ResultMetaData.CreationTime.Replace("-", string.Empty);
-                    ResultDataJB.send_date = ResultDataJB.send_date.Replace(":", string.Empty);
-                    ResultDataJB.send_date = ResultDataJB.send_date.Replace("T", string.Empty);
-                    ResultDataJB.send_date = ResultDataJB.send_date.Substring(0, 14);
-                    ResultDataJB.resultEvaluation = dataJB.Data[0].ResultContent[0].OverallResultValues[0].ResultEvaluation;
-                    ResultDataJB.torque = dataJB.Data[0].ResultContent[0].OverallResultValues[0].Value.ToString();
 
-                    ResultDataJB.send_data = ResultDataJB.vin +
-                        ";" + ResultDataJB.send_date.Substring(0, 8) +
-                        ";" + ResultDataJB.send_date.Substring(8, 6) +
-                        ";" + ResultDataJB.dev_id +
-                        ";" + ResultDataJB.resultEvaluation +
-                        ";" + ResultDataJB.torque + ";";
+                    textBox1.Text += "JB Request done: " + httpRequest + "\r\nResultId: " + ResultDataJB.currentResultId
+                        + "   VIN: " + dataJB.Data[0].ResultMetaData.Tags[0].Value;
+                    logger.Log("JB Request done: " + httpRequest + "\r\nResultId: " + ResultDataJB.currentResultId
+                        + "   VIN: " + dataJB.Data[0].ResultMetaData.Tags[0].Value);
 
-                    textBox1.Text += "\r\n      JB send data: " + ResultDataJB.send_data + "\r\n";
-                    textBox1.Text += "\r\n      JB send date: " + ResultDataJB.send_date + "\r\n";
-                    logger.Log("JB SEND_DATA to SQL Server: \r\n" + ResultDataJB.send_data);
+                    string resultCompare = "";
+                    resultCompare = CheckLastResultId(ResultDataJB.currentResultId);
 
-                    try
+                    if (ResultDataJB.currentResultId == resultCompare)
                     {
-                        string sql = "insert into [dbo].[Q_QUALITY_IF] (DEV_ID,SEND_DATE,SEND_SERIAL,DATA_SIZE,DATA_TYPE," +
-                            "SEND_DATA,CREATE_TIME,CREATE_USER,RESULT_ID,PROGRAM_VERSION) " +
-                            "values (@DEV_ID,@SEND_DATE,@SEND_SERIAL,@DATA_SIZE,@DATA_TYPE,@SEND_DATA,@CREATE_TIME," +
-                            "@CREATE_USER,@RESULT_ID,@PROGRAM_VERSION)";
-                        using (SqlConnection conn = new SqlConnection(connectionString))
-                        {
-                            conn.Open();
-                            using (SqlCommand cmd = new SqlCommand(sql, conn))
-                            {
-                                cmd.Parameters.AddWithValue("@DEV_ID", "DIAP080");
-                                cmd.Parameters.AddWithValue("@SEND_DATE", ResultDataJB.send_date);
-                                cmd.Parameters.AddWithValue("@SEND_SERIAL", "1");
-                                cmd.Parameters.AddWithValue("@DATA_SIZE", "44");
-                                cmd.Parameters.AddWithValue("@DATA_TYPE", "QR");
-                                cmd.Parameters.AddWithValue("@SEND_DATA", ResultDataJB.send_data);
-                                cmd.Parameters.AddWithValue("@CREATE_TIME", ResultDataJB.send_date);
-                                cmd.Parameters.AddWithValue("@CREATE_USER", ResultDataJB.vin);
-                                cmd.Parameters.AddWithValue("@RESULT_ID", ResultDataJB.currentResultId);
-                                cmd.Parameters.AddWithValue("@PROGRAM_VERSION", ResultDataJB.currentProgramversion);
+                        textBox1.Text += "\r\nResultId repeated (" + ResultDataJB.vin + "), tiJBtening disregarded" +
+                            "\r\nResultId on [RESULTID]Table: " + resultCompare;
 
-                                string rowsAffected = cmd.ExecuteNonQuery().ToString();
-                                textBox1.Text += "\r\n" + "[QUALITY_IF] SQL insert done, Rows affected: " + rowsAffected + "\r\n";
-                                logger.Log("SQL Insert done, Rows affected: " + rowsAffected
-                                    + "\r\n TRANSACTION: " + cmd.CommandText + "\r\n");
+                        logger.Log("ResultId repeated(" + ResultDataJB.currentResultId +
+                            "\r\n(VIN: " + dataJB.Data[0].ResultMetaData.Tags[0].Value + ")" +
+                            "\r\nResultId on [RESULTID]Table: " + resultCompare);
+                    }
+                    else
+                    {
+                        InsertOnResultIdTable(ResultDataJB);
+
+                        textBox1.Text += "\r\nNEW ResultId to INSERT (" + ResultDataJB.currentResultId + ")" +
+                            "\r\n(VIN: " + dataJB.Data[0].ResultMetaData.Tags[0].Value + ")";
+                        logger.Log("NEW ResultId to INSERT (" + ResultDataJB.currentResultId + ")" +
+                            "\r\n(VIN: " + dataJB.Data[0].ResultMetaData.Tags[0].Value + ")");
+
+                        ResultDataJB.vin = dataJB.Data[0].ResultMetaData.Tags[0].Value;
+                        ResultDataJB.send_date = dataJB.Data[0].ResultMetaData.CreationTime.Replace("-", string.Empty);
+                        ResultDataJB.send_date = ResultDataJB.send_date.Replace(":", string.Empty);
+                        ResultDataJB.send_date = ResultDataJB.send_date.Replace("T", string.Empty);
+                        ResultDataJB.send_date = ResultDataJB.send_date.Substring(0, 14);
+                        ResultDataJB.resultEvaluation = dataJB.Data[0].ResultContent[0].OverallResultValues[0].ResultEvaluation;
+                        ResultDataJB.torque = dataJB.Data[0].ResultContent[0].OverallResultValues[0].Value.ToString();
+
+                        ResultDataJB.send_data = ResultDataJB.vin +
+                            ";" + ResultDataJB.send_date.Substring(0, 8) +
+                            ";" + ResultDataJB.send_date.Substring(8, 6) +
+                            ";" + ResultDataJB.dev_id +
+                            ";" + ResultDataJB.resultEvaluation +
+                            ";" + ResultDataJB.torque + ";";
+
+                        textBox1.Text += "\r\n      JB send data: " + ResultDataJB.send_data + "\r\n";
+                        textBox1.Text += "\r\n      JB send date: " + ResultDataJB.send_date + "\r\n";
+                        logger.Log("JB SEND_DATA to SQL Server: \r\n" + ResultDataJB.send_data);
+
+                        try
+                        {
+                            string sql = "insert into [dbo].[Q_QUALITY_IF] (DEV_ID,SEND_DATE,SEND_SERIAL,DATA_SIZE,DATA_TYPE," +
+                                "SEND_DATA,CREATE_TIME,CREATE_USER,RESULT_ID,PROGRAM_VERSION) " +
+                                "values (@DEV_ID,@SEND_DATE,@SEND_SERIAL,@DATA_SIZE,@DATA_TYPE,@SEND_DATA,@CREATE_TIME," +
+                                "@CREATE_USER,@RESULT_ID,@PROGRAM_VERSION)";
+                            using (SqlConnection conn = new SqlConnection(connectionString))
+                            {
+                                conn.Open();
+                                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                                {
+                                    cmd.Parameters.AddWithValue("@DEV_ID", "DIAP080");
+                                    cmd.Parameters.AddWithValue("@SEND_DATE", ResultDataJB.send_date);
+                                    cmd.Parameters.AddWithValue("@SEND_SERIAL", "1");
+                                    cmd.Parameters.AddWithValue("@DATA_SIZE", "44");
+                                    cmd.Parameters.AddWithValue("@DATA_TYPE", "QR");
+                                    cmd.Parameters.AddWithValue("@SEND_DATA", ResultDataJB.send_data);
+                                    cmd.Parameters.AddWithValue("@CREATE_TIME", ResultDataJB.send_date);
+                                    cmd.Parameters.AddWithValue("@CREATE_USER", ResultDataJB.vin);
+                                    cmd.Parameters.AddWithValue("@RESULT_ID", ResultDataJB.currentResultId);
+                                    cmd.Parameters.AddWithValue("@PROGRAM_VERSION", ResultDataJB.currentProgramversion);
+
+                                    string rowsAffected = cmd.ExecuteNonQuery().ToString();
+                                    textBox1.Text += "\r\n" + "[QUALITY_IF] SQL insert done, Rows affected: " + rowsAffected + "\r\n";
+                                    logger.Log("SQL Insert done, Rows affected: " + rowsAffected
+                                        + "\r\n TRANSACTION: " + cmd.CommandText + "\r\n");
+                                }
                             }
                         }
+                        catch (SqlException ex)
+                        {
+                            string msg = "Q_QUALITY_IF Insert Error:";
+                            msg += ex.Message;
+                            textBox1.Text += "\r\n***** SQL ERROR *****:\r\n" + msg + "\r\n";
+                            logger.Log("\r\n***** SQL ERROR *****:\r\n" + msg + "\r\n");
+                        }
                     }
-                    catch (SqlException ex)
-                    {
-                        string msg = "Q_QUALITY_IF Insert Error:";
-                        msg += ex.Message;
-                        textBox1.Text += "\r\n***** SQL ERROR *****:\r\n" + msg + "\r\n";
-                        logger.Log("\r\n***** SQL ERROR *****:\r\n" + msg + "\r\n");
-                    }
+
+                    textBox1.Text += "\r\nEnd of JB Timer tick\r\n---------------------\r\n";
+                    logger.Log("End of JB Timer tick");
+                    TimerJB_btn.BackColor = Color.White;
+
+                    if (startmemory == 1 && JB_checkBox.Checked)
+                        TimerJB.Start();
                 }
-
-                textBox1.Text += "\r\nEnd of JB Timer tick\r\n---------------------\r\n";
-                logger.Log("End of JB Timer tick");
-                TimerJB_btn.BackColor = Color.White;
-
-                if (startmemory == 1 && JB_checkBox.Checked)
-                    TimerJB.Start();
+                
             }
         }
 
