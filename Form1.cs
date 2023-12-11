@@ -6,6 +6,7 @@ using static System.Net.Mime.MediaTypeNames;
 using static TN8_to_MES.Form1;
 using static System.Windows.Forms.Design.AxImporter;
 using EngineNumber_checker;
+using System.Net.Http;
 
 namespace TN8_to_MES
 {
@@ -269,14 +270,25 @@ namespace TN8_to_MES
 
                 string httpRequest = "http://127.0.0.1:7110/api/v3/results/tightening?programId=0050D604FB07-2-1&limit=1";
                 var httpClientCV = new HttpClient();
-                var respCV = await httpClientCV.GetAsync(httpRequest);
-                string strCV = await respCV.Content.ReadAsStringAsync();
+                HttpResponseMessage respCV;
+                string strCV;
+
+                try
+                {
+                    respCV = await httpClientCV.GetAsync(httpRequest);
+                    strCV = await respCV.Content.ReadAsStringAsync();
+                }
+                catch (Exception exc)
+                {
+                    logger.Log("ERROR: " + exc.ToString() + "\r\n exiting from TimerCV_Tick function... \r\n");
+                    return;
+                }
 
                 if (strCV.Contains("error"))
                 {
-                    logger.Log("Result ran into a error: \r\n" +
+                    logger.Log("Result run into a error: \r\n" +
                         "RAW JSON: " + strCV);
-                    textBox1.Text = "Error on get results";
+                    textBox1.Text = "Error on get results from CV";
                     TimerCV.Start();
                 }
                 else
@@ -396,14 +408,25 @@ namespace TN8_to_MES
 
                 string httpRequest = "http://127.0.0.1:7110/api/v3/results/tightening?programId=0050D604FB07-1-1&limit=1";
                 var httpClientGH = new HttpClient();
-                var respGH = await httpClientGH.GetAsync(httpRequest);
-                string strGH = await respGH.Content.ReadAsStringAsync();
+                HttpResponseMessage respGH;
+                string strGH;
+
+                try
+                {
+                    respGH = await httpClientGH.GetAsync(httpRequest);
+                    strGH = await respGH.Content.ReadAsStringAsync();
+                }
+                catch (Exception exc)
+                {
+                    logger.Log("ERROR: " + exc.ToString() + "\r\n exiting from TimerGH_Tick function... \r\n");
+                    return;
+                }
 
                 if (strGH.Contains("error"))
                 {
                     logger.Log("Result ran into a error: \r\n" +
                         "RAW JSON: " + strGH);
-                    textBox1.Text = "Error on get results";
+                    textBox1.Text = "Error on get results from GH";
                     TimerGH.Start();
                 }
                 else
@@ -492,8 +515,8 @@ namespace TN8_to_MES
                         {
                             string msg = "Q_QUALITY_IF Insert Error:";
                             msg += ex.Message;
-                            textBox1.Text += "\r\n***** SQL ERROR *****:\r\n" + msg + "\r\n";
-                            logger.Log("\r\n***** SQL ERROR *****:\r\n" + msg + "\r\n");
+                            textBox1.Text += "\r\n***** GH SQL ERROR *****:\r\n" + msg + "\r\n";
+                            logger.Log("\r\n***** GH SQL ERROR *****:\r\n" + msg + "\r\n");
                         }
                     }
 
@@ -524,14 +547,26 @@ namespace TN8_to_MES
 
                 string httpRequest = "http://127.0.0.1:7110/api/v3/results/tightening?programId=0050D604FB07-3-1&limit=1";
                 var httpClientJB = new HttpClient();
-                var respJB = await httpClientJB.GetAsync(httpRequest);
-                string strJB = await respJB.Content.ReadAsStringAsync();
+                HttpResponseMessage respJB;
+                string strJB;
+
+                try
+                {
+                    respJB = await httpClientJB.GetAsync(httpRequest);
+                    strJB = await respJB.Content.ReadAsStringAsync();
+                }
+                catch (Exception exc)
+                {
+                    logger.Log("ERROR: " + exc.ToString() + "\r\n exiting from TimerJB_Tick function... \r\n");
+
+                    return;
+                }
 
                 if (strJB.Contains("error"))
                 {
-                    logger.Log("Result ran into a error: \r\n" +
+                    logger.Log("JB Result ran into a error: \r\n" +
                         "RAW JSON: " + strJB);
-                    textBox1.Text = "Error on get results";
+                    textBox1.Text = "Error on get JB results";
                     TimerJB.Start();
                 }
                 else
@@ -620,8 +655,8 @@ namespace TN8_to_MES
                         {
                             string msg = "Q_QUALITY_IF Insert Error:";
                             msg += ex.Message;
-                            textBox1.Text += "\r\n***** SQL ERROR *****:\r\n" + msg + "\r\n";
-                            logger.Log("\r\n***** SQL ERROR *****:\r\n" + msg + "\r\n");
+                            textBox1.Text += "\r\n***** JB SQL ERROR *****:\r\n" + msg + "\r\n";
+                            logger.Log("\r\n***** JB SQL ERROR *****:\r\n" + msg + "\r\n");
                         }
                     }
 
@@ -632,7 +667,7 @@ namespace TN8_to_MES
                     if (startmemory == 1 && JB_checkBox.Checked)
                         TimerJB.Start();
                 }
-                
+
             }
         }
 
