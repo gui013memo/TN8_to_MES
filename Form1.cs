@@ -7,6 +7,7 @@ using static TN8_to_MES.Form1;
 using static System.Windows.Forms.Design.AxImporter;
 using EngineNumber_checker;
 using System.Net.Http;
+using System.Linq;
 
 namespace TN8_to_MES
 {
@@ -73,6 +74,29 @@ namespace TN8_to_MES
 
             [JsonProperty("overallResultValues")]
             public OverallResultValue[] OverallResultValues { get; set; }
+
+            [JsonProperty("Errors")]
+            public Errors[] Errors { get; set; }
+        }
+
+        public partial class Errors
+        {
+            [JsonProperty("errorType")]
+            public string errorType { get; set; }
+
+            [JsonProperty("errorId")]
+            public string errorId { get; set; }
+
+            ErrorMessage ErrorMessage { get; set; }
+        }
+
+        public partial class ErrorMessage
+        {
+            [JsonProperty("locale")]
+            public long locale { get; set; }
+
+            [JsonProperty("text")]
+            public string text { get; set; }
         }
 
         public partial class OverallResultValue
@@ -281,6 +305,7 @@ namespace TN8_to_MES
                 catch (Exception exc)
                 {
                     logger.Log("ERROR: " + exc.ToString() + "\r\n exiting from TimerCV_Tick function... \r\n");
+                    TimerCV.Start();
                     return;
                 }
 
@@ -404,9 +429,10 @@ namespace TN8_to_MES
 
                 TimerGH_btn.BackColor = Color.Green;
 
-                ResultData ResultDataGH = new ResultData();
+                ResultData[] ResultDataGH = new ResultData[3];
 
-                string httpRequest = "http://127.0.0.1:7110/api/v3/results/tightening?programId=0050D604FB07-1-1&limit=1";
+                //Current quantity of results = 3 <-------
+                string httpRequest = "http://127.0.0.1:7110/api/v3/results/tightening?programId=0050D604FB07-1-1&limit=3";
                 var httpClientGH = new HttpClient();
                 HttpResponseMessage respGH;
                 string strGH;
@@ -419,9 +445,12 @@ namespace TN8_to_MES
                 catch (Exception exc)
                 {
                     logger.Log("ERROR: " + exc.ToString() + "\r\n exiting from TimerGH_Tick function... \r\n");
+                    TimerGH.Start();
                     return;
                 }
 
+
+                //REWORK
                 if (strGH.Contains("error"))
                 {
                     logger.Log("Result ran into a error: \r\n" +
@@ -433,92 +462,101 @@ namespace TN8_to_MES
                 {
                     var dataGH = JsonConvert.DeserializeObject<Data1>(strGH);
 
-                    ResultDataGH.currentResultId = dataGH.Data[0].ResultMetaData.ResultId.ToString();
-                    ResultDataGH.currentProgramversion = dataGH.Data[0].ResultMetaData.programVersionId;
-                    ResultDataGH.vin = dataGH.Data[0].ResultMetaData.Tags[0].Value;
+                    for (int i = 0; i < 3; i++)
+                    {
+                        ResultDataGH[i].currentResultId = dataGH.Data[i].ResultMetaData.ResultId.ToString();
+                        ResultDataGH[i].currentProgramversion = dataGH.Data[i].ResultMetaData.programVersionId;
+                        ResultDataGH[i].vin = dataGH.Data[i].ResultMetaData.Tags[i].Value;
 
-                    textBox1.Text += "GH Request done: " + httpRequest + "\r\nResultId: " + ResultDataGH.currentResultId
-                        + "   VIN: " + dataGH.Data[0].ResultMetaData.Tags[0].Value;
-                    logger.Log("GH Request done: " + httpRequest + "\r\nResultId: " + ResultDataGH.currentResultId
-                        + "   VIN: " + dataGH.Data[0].ResultMetaData.Tags[0].Value);
+                        string log = "GH Request done: " + httpRequest +
+                        "\r\nResultId: " + ResultDataGH[i].currentResultId +
+                        "\r\nVIN: " + ResultDataGH[i].vin +
+                        "\r\nProgramVersion: " + ResultDataGH[i].currentProgramversion;
+
+                        textBox1.Text += log;
+                        logger.Log(log);
+                    }
 
                     string resultCompare = "";
-                    resultCompare = CheckLastResultId(ResultDataGH.currentResultId);
-
-                    if (ResultDataGH.currentResultId == resultCompare)
+                    for (int i = 0; i < 3; i++)
                     {
-                        textBox1.Text += "\r\nResultId repeated (" + ResultDataGH.vin + "), tightening disregarded" +
+                        resultCompare = CheckLastResultId(ResultDataGH[i].currentResultId);
+                    }
+
+                    if (ResultDataGH[0].currentResultId == resultCompare)
+                    {
+                        textBox1.Text += "\r\nResultId repeated (" + ResultDataGH[0].vin + "), tightening disregarded" +
                             "\r\nResultId on [RESULTID]Table: " + resultCompare;
 
-                        logger.Log("ResultId repeated(" + ResultDataGH.currentResultId +
+                        logger.Log("ResultId repeated(" + ResultDataGH[0].currentResultId +
                             "\r\n(VIN: " + dataGH.Data[0].ResultMetaData.Tags[0].Value + ")" +
                             "\r\nResultId on [RESULTID]Table: " + resultCompare);
                     }
-                    else
-                    {
-                        InsertOnResultIdTable(ResultDataGH);
+                    //else
+                    //{
+                    //    InsertOnResultIdTable(ResultDataGH[0]);
 
-                        textBox1.Text += "\r\nNEW ResultId to INSERT (" + ResultDataGH.currentResultId + ")" +
-                            "\r\n(VIN: " + dataGH.Data[0].ResultMetaData.Tags[0].Value + ")";
-                        logger.Log("NEW ResultId to INSERT (" + ResultDataGH.currentResultId + ")" +
-                            "\r\n(VIN: " + dataGH.Data[0].ResultMetaData.Tags[0].Value + ")");
+                    //    textBox1.Text += "\r\nNEW ResultId to INSERT (" + ResultDataGH[0].currentResultId + ")" +
+                    //        "\r\n(VIN: " + dataGH.Data[0].ResultMetaData.Tags[0].Value + ")";
+                    //    logger.Log("NEW ResultId to INSERT (" + ResultDataGH.currentResultId + ")" +
+                    //        "\r\n(VIN: " + dataGH.Data[0].ResultMetaData.Tags[0].Value + ")");
 
-                        ResultDataGH.vin = dataGH.Data[0].ResultMetaData.Tags[0].Value;
-                        ResultDataGH.send_date = dataGH.Data[0].ResultMetaData.CreationTime.Replace("-", string.Empty);
-                        ResultDataGH.send_date = ResultDataGH.send_date.Replace(":", string.Empty);
-                        ResultDataGH.send_date = ResultDataGH.send_date.Replace("T", string.Empty);
-                        ResultDataGH.send_date = ResultDataGH.send_date.Substring(0, 14);
-                        ResultDataGH.resultEvaluation = dataGH.Data[0].ResultContent[0].OverallResultValues[0].ResultEvaluation;
-                        ResultDataGH.torque = dataGH.Data[0].ResultContent[0].OverallResultValues[0].Value.ToString();
+                    //    ResultDataGH.vin = dataGH.Data[0].ResultMetaData.Tags[0].Value;
+                    //    ResultDataGH.send_date = dataGH.Data[0].ResultMetaData.CreationTime.Replace("-", string.Empty);
+                    //    ResultDataGH.send_date = ResultDataGH.send_date.Replace(":", string.Empty);
+                    //    ResultDataGH.send_date = ResultDataGH.send_date.Replace("T", string.Empty);
+                    //    ResultDataGH.send_date = ResultDataGH.send_date.Substring(0, 14);
+                    //    ResultDataGH.resultEvaluation = dataGH.Data[0].ResultContent[0].OverallResultValues[0].ResultEvaluation;
+                    //    ResultDataGH.torque = dataGH.Data[0].ResultContent[0].OverallResultValues[0].Value.ToString();
 
-                        ResultDataGH.send_data = ResultDataGH.vin +
-                            ";" + ResultDataGH.send_date.Substring(0, 8) +
-                            ";" + ResultDataGH.send_date.Substring(8, 6) +
-                            ";" + ResultDataGH.dev_id +
-                            ";" + ResultDataGH.resultEvaluation +
-                            ";" + ResultDataGH.torque + ";";
+                    //    ResultDataGH.send_data = ResultDataGH.vin +
+                    //        ";" + ResultDataGH.send_date.Substring(0, 8) +
+                    //        ";" + ResultDataGH.send_date.Substring(8, 6) +
+                    //        ";" + ResultDataGH.dev_id +
+                    //        ";" + ResultDataGH.resultEvaluation +
+                    //        ";" + ResultDataGH.torque + ";";
 
-                        textBox1.Text += "\r\n      GH send data: " + ResultDataGH.send_data + "\r\n";
-                        textBox1.Text += "\r\n      GH send date: " + ResultDataGH.send_date + "\r\n";
-                        logger.Log("GH SEND_DATA to SQL Server: \r\n" + ResultDataGH.send_data);
+                    //    textBox1.Text += "\r\n      GH send data: " + ResultDataGH.send_data + "\r\n";
+                    //    textBox1.Text += "\r\n      GH send date: " + ResultDataGH.send_date + "\r\n";
+                    //    logger.Log("GH SEND_DATA to SQL Server: \r\n" + ResultDataGH.send_data);
 
-                        try
-                        {
-                            string sql = "insert into [dbo].[Q_QUALITY_IF] (DEV_ID,SEND_DATE,SEND_SERIAL,DATA_SIZE,DATA_TYPE," +
-                                "SEND_DATA,CREATE_TIME,CREATE_USER,RESULT_ID,PROGRAM_VERSION) " +
-                                "values (@DEV_ID,@SEND_DATE,@SEND_SERIAL,@DATA_SIZE,@DATA_TYPE,@SEND_DATA,@CREATE_TIME," +
-                                "@CREATE_USER,@RESULT_ID,@PROGRAM_VERSION)";
-                            using (SqlConnection conn = new SqlConnection(connectionString))
-                            {
-                                conn.Open();
-                                using (SqlCommand cmd = new SqlCommand(sql, conn))
-                                {
-                                    cmd.Parameters.AddWithValue("@DEV_ID", "DIAP080");
-                                    cmd.Parameters.AddWithValue("@SEND_DATE", ResultDataGH.send_date);
-                                    cmd.Parameters.AddWithValue("@SEND_SERIAL", "1");
-                                    cmd.Parameters.AddWithValue("@DATA_SIZE", "44");
-                                    cmd.Parameters.AddWithValue("@DATA_TYPE", "QR");
-                                    cmd.Parameters.AddWithValue("@SEND_DATA", ResultDataGH.send_data);
-                                    cmd.Parameters.AddWithValue("@CREATE_TIME", ResultDataGH.send_date);
-                                    cmd.Parameters.AddWithValue("@CREATE_USER", ResultDataGH.vin);
-                                    cmd.Parameters.AddWithValue("@RESULT_ID", ResultDataGH.currentResultId);
-                                    cmd.Parameters.AddWithValue("@PROGRAM_VERSION", ResultDataGH.currentProgramversion);
+                    //    try
+                    //    {
+                    //        string sql = "insert into [dbo].[Q_QUALITY_IF] (DEV_ID,SEND_DATE,SEND_SERIAL,DATA_SIZE,DATA_TYPE," +
+                    //            "SEND_DATA,CREATE_TIME,CREATE_USER,RESULT_ID,PROGRAM_VERSION) " +
+                    //            "values (@DEV_ID,@SEND_DATE,@SEND_SERIAL,@DATA_SIZE,@DATA_TYPE,@SEND_DATA,@CREATE_TIME," +
+                    //            "@CREATE_USER,@RESULT_ID,@PROGRAM_VERSION)";
+                    //        using (SqlConnection conn = new SqlConnection(connectionString))
+                    //        {
+                    //            conn.Open();
+                    //            using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    //            {
+                    //                cmd.Parameters.AddWithValue("@DEV_ID", "DIAP080");
+                    //                cmd.Parameters.AddWithValue("@SEND_DATE", ResultDataGH.send_date);
+                    //                cmd.Parameters.AddWithValue("@SEND_SERIAL", "1");
+                    //                cmd.Parameters.AddWithValue("@DATA_SIZE", "44");
+                    //                cmd.Parameters.AddWithValue("@DATA_TYPE", "QR");
+                    //                cmd.Parameters.AddWithValue("@SEND_DATA", ResultDataGH.send_data);
+                    //                cmd.Parameters.AddWithValue("@CREATE_TIME", ResultDataGH.send_date);
+                    //                cmd.Parameters.AddWithValue("@CREATE_USER", ResultDataGH.vin);
+                    //                cmd.Parameters.AddWithValue("@RESULT_ID", ResultDataGH.currentResultId);
+                    //                cmd.Parameters.AddWithValue("@PROGRAM_VERSION", ResultDataGH.currentProgramversion);
 
-                                    string rowsAffected = cmd.ExecuteNonQuery().ToString();
-                                    textBox1.Text += "\r\n" + "[QUALITY_IF] SQL insert done, Rows affected: " + rowsAffected + "\r\n";
-                                    logger.Log("SQL Insert done, Rows affected: " + rowsAffected
-                                        + "\r\n TRANSACTION: " + cmd.CommandText + "\r\n");
-                                }
-                            }
-                        }
-                        catch (SqlException ex)
-                        {
-                            string msg = "Q_QUALITY_IF Insert Error:";
-                            msg += ex.Message;
-                            textBox1.Text += "\r\n***** GH SQL ERROR *****:\r\n" + msg + "\r\n";
-                            logger.Log("\r\n***** GH SQL ERROR *****:\r\n" + msg + "\r\n");
-                        }
-                    }
+                    //                string rowsAffected = cmd.ExecuteNonQuery().ToString();
+                    //                textBox1.Text += "\r\n" + "[QUALITY_IF] SQL insert done, Rows affected: " + rowsAffected + "\r\n";
+                    //                logger.Log("SQL Insert done, Rows affected: " + rowsAffected
+                    //                    + "\r\n TRANSACTION: " + cmd.CommandText + "\r\n");
+                    //            }
+                    //        }
+                    //    }
+                    //    catch (SqlException ex)
+                    //    {
+                    //        string msg = "Q_QUALITY_IF Insert Error:";
+                    //        msg += ex.Message;
+                    //        textBox1.Text += "\r\n***** GH SQL ERROR *****:\r\n" + msg + "\r\n";
+                    //        logger.Log("\r\n***** GH SQL ERROR *****:\r\n" + msg + "\r\n");
+                    //    }
+                    //}
 
                     textBox1.Text += "\r\nEnd of GH Timer tick\r\n---------------------\r\n";
                     logger.Log("End of GH Timer tick");
@@ -558,7 +596,7 @@ namespace TN8_to_MES
                 catch (Exception exc)
                 {
                     logger.Log("ERROR: " + exc.ToString() + "\r\n exiting from TimerJB_Tick function... \r\n");
-
+                    TimerJB.Start();
                     return;
                 }
 
