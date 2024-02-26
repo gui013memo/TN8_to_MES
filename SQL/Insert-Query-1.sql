@@ -1,22 +1,22 @@
-            query = "INSERT INTO [dbo].[Q_QUALITY_IF]\r\n" +
-     "([DEV_ID]\r\n" +
-     ",[SEND_DATE]\r\n" +
-     ",[SEND_SERIAL]\r\n" +
-     ",[DATA_SIZE]\r\n" +
-     ",[DATA_TYPE]\r\n" +
-     ",[SEND_DATA]\r\n" +
-     ",[CREATE_TIME]\r\n" +
-     ",[CREATE_USER]\r\n" +
-     ",[RESULT_ID]\r\n" +
-     ",[PROGRAM_VERSION])\r\n" +
-     "VALUES\r\n" +
-     "('DIAP080'\r\n" +
-     "," + ResultData.send_date +
-     ",'1'\r\n" +
-     ",'44'\r\n" +
-     ",'QR'\r\n" +
-     "," + ResultData.send_data + "\r\n" +
-     "," + ResultData.send_date + "\r\n" +
-     "," + ResultData.vin + "\r\n" +
-     "," + ResultData.currentResultIdGH + "\r\n" +
-     "," + ResultData.currentProgramversion;
+     INSERT INTO [dbo].[Q_QUALITY_IF]
+     ([DEV_ID]
+     ,[SEND_DATE]
+     ,[SEND_SERIAL]
+     ,[DATA_SIZE]
+     ,[DATA_TYPE]
+     ,[SEND_DATA]
+     ,[CREATE_TIME]
+     ,[CREATE_USER]
+     ,[RESULT_ID]
+     ,[PROGRAM_VERSION])
+     VALUES
+     ('DIAP080'
+     ,'20231201020304'
+     ,'1'
+     ,'44'
+     ,'QR'
+     ,'GHF 546012;20231201;020304;DIAP080;OK;48.70'
+     ,'20231201020304' 
+     ,'GHF 546012'
+     , '' 
+     , '')

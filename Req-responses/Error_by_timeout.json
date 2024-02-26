@@ -1,0 +1,4 @@
+{
+  "title": "An error has occurred.",
+  "detail": " The transaction associated with the current connection has completed but has not been disposed.  The transaction must be disposed before the connection can be used to execute SQL statements."
+}

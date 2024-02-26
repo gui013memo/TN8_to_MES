@@ -1,0 +1,164 @@
+{
+  "data": [
+    {
+      "dataModelTitle": "result",
+      "dataModelVersion": "3.0",
+      "resultMetaData": {
+        "sequenceNumber": 109340,
+        "tags": [
+          {
+            "name": "VIN",
+            "value": "GHA 570094",
+            "tagType": 2
+          }
+        ],
+        "reporterAssetId": "01d57b1f-c437-856d-f7ba-e2cd075e137d",
+        "generatorAssetId": "1c8d29d5-f6d2-321c-a680-a27f14780c44",
+        "programId": "0050D604FB07-1-1",
+        "programVersionId": "1701437710",
+        "resultId": "73a42435-cff2-5ded-9e8d-f0cfeda80c22",
+        "creationTime": "2024-02-24T06:03:53-03:00",
+        "resultEvaluation": "OK",
+        "resultEvaluationCode": 1,
+        "resultEvaluationDetails": {
+          "locale": "en-US",
+          "text": "Result was OK"
+        },
+        "acdc_JobStatus": 2
+      },
+      "resultContent": [
+        {
+          "dataModelTitle": "joiningresult",
+          "dataModelVersion": "3.0",
+          "overallResultValues": [
+            {
+              "physicalQuantity": 2,
+              "value": 48.32,
+              "resultEvaluation": "OK",
+              "valueTag": 1,
+              "lowLimit": 45.5,
+              "highLimit": 55,
+              "targetValue": 48
+            },
+            {
+              "physicalQuantity": 3,
+              "value": 31,
+              "resultEvaluation": "OK",
+              "valueTag": 1,
+              "lowLimit": 7,
+              "highLimit": 80
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "dataModelTitle": "result",
+      "dataModelVersion": "3.0",
+      "resultMetaData": {
+        "sequenceNumber": 109339,
+        "tags": [
+          {
+            "name": "VIN",
+            "value": "GHF 570287",
+            "tagType": 2
+          }
+        ],
+        "reporterAssetId": "01d57b1f-c437-856d-f7ba-e2cd075e137d",
+        "generatorAssetId": "1c8d29d5-f6d2-321c-a680-a27f14780c44",
+        "programId": "0050D604FB07-1-1",
+        "programVersionId": "1701437710",
+        "resultId": "82014423-f754-59d2-bfef-9f7824ee3619",
+        "creationTime": "2024-02-24T06:02:33-03:00",
+        "resultEvaluation": "OK",
+        "resultEvaluationCode": 1,
+        "resultEvaluationDetails": {
+          "locale": "en-US",
+          "text": "Result was OK"
+        },
+        "acdc_JobStatus": 2
+      },
+      "resultContent": [
+        {
+          "dataModelTitle": "joiningresult",
+          "dataModelVersion": "3.0",
+          "overallResultValues": [
+            {
+              "physicalQuantity": 2,
+              "value": 48.84,
+              "resultEvaluation": "OK",
+              "valueTag": 1,
+              "lowLimit": 45.5,
+              "highLimit": 55,
+              "targetValue": 48
+            },
+            {
+              "physicalQuantity": 3,
+              "value": 44,
+              "resultEvaluation": "OK",
+              "valueTag": 1,
+              "lowLimit": 7,
+              "highLimit": 80
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "dataModelTitle": "result",
+      "dataModelVersion": "3.0",
+      "resultMetaData": {
+        "sequenceNumber": 109338,
+        "tags": [
+          {
+            "name": "VIN",
+            "value": "GHA 570202",
+            "tagType": 2
+          }
+        ],
+        "reporterAssetId": "01d57b1f-c437-856d-f7ba-e2cd075e137d",
+        "generatorAssetId": "1c8d29d5-f6d2-321c-a680-a27f14780c44",
+        "programId": "0050D604FB07-1-1",
+        "programVersionId": "1701437710",
+        "resultId": "aa9c47e3-2d95-5bc5-a087-babba4db0f70",
+        "creationTime": "2024-02-24T06:00:55-03:00",
+        "resultEvaluation": "OK",
+        "resultEvaluationCode": 1,
+        "resultEvaluationDetails": {
+          "locale": "en-US",
+          "text": "Result was OK"
+        },
+        "acdc_JobStatus": 2
+      },
+      "resultContent": [
+        {
+          "dataModelTitle": "joiningresult",
+          "dataModelVersion": "3.0",
+          "overallResultValues": [
+            {
+              "physicalQuantity": 2,
+              "value": 48.29,
+              "resultEvaluation": "OK",
+              "valueTag": 1,
+              "lowLimit": 45.5,
+              "highLimit": 55,
+              "targetValue": 48
+            },
+            {
+              "physicalQuantity": 3,
+              "value": 30,
+              "resultEvaluation": "OK",
+              "valueTag": 1,
+              "lowLimit": 7,
+              "highLimit": 80
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "paging": {
+    "count": 3,
+    "next": "http://127.0.0.1:7110/api/v3/results/tightening?programId=0050D604FB07-1-1&limit=3&_ct=14682778_2024-02-24+06%3a00%3a55.000000"
+  }
+}

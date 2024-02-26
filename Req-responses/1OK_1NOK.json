@@ -1,0 +1,140 @@
+{
+  "data": [
+    {
+      "dataModelTitle": "result",
+      "dataModelVersion": "3.0",
+      "resultMetaData": {
+        "sequenceNumber": 109123,
+        "tags": [
+          {
+            "name": "VIN",
+            "value": "GHA 570038",
+            "tagType": 2
+          }
+        ],
+        "reporterAssetId": "01d57b1f-c437-856d-f7ba-e2cd075e137d",
+        "generatorAssetId": "1c8d29d5-f6d2-321c-a680-a27f14780c44",
+        "programId": "0050D604FB07-1-1",
+        "programVersionId": "1701437710",
+        "resultId": "efbc548a-e3b8-5ed3-93ae-0d96308a665a",
+        "creationTime": "2024-02-24T00:37:15-03:00",
+        "resultEvaluation": "OK",
+        "resultEvaluationCode": 1,
+        "resultEvaluationDetails": {
+          "locale": "en-US",
+          "text": "Result was OK"
+        },
+        "acdc_JobStatus": 2
+      },
+      "resultContent": [
+        {
+          "dataModelTitle": "joiningresult",
+          "dataModelVersion": "3.0",
+          "overallResultValues": [
+            {
+              "physicalQuantity": 2,
+              "value": 48.68,
+              "resultEvaluation": "OK",
+              "valueTag": 1,
+              "lowLimit": 45.5,
+              "highLimit": 55,
+              "targetValue": 48
+            },
+            {
+              "physicalQuantity": 3,
+              "value": 17,
+              "resultEvaluation": "OK",
+              "valueTag": 1,
+              "lowLimit": 7,
+              "highLimit": 80
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "dataModelTitle": "result",
+      "dataModelVersion": "3.0",
+      "resultMetaData": {
+        "sequenceNumber": 109122,
+        "tags": [
+          {
+            "name": "VIN",
+            "value": "GHA 570038",
+            "tagType": 2
+          }
+        ],
+        "reporterAssetId": "01d57b1f-c437-856d-f7ba-e2cd075e137d",
+        "generatorAssetId": "1c8d29d5-f6d2-321c-a680-a27f14780c44",
+        "programId": "0050D604FB07-1-1",
+        "programVersionId": "1701437710",
+        "resultId": "c700ac64-cb1e-5f02-a4ad-ca259ad933e6",
+        "creationTime": "2024-02-24T00:37:08-03:00",
+        "resultEvaluation": "NotOK",
+        "resultEvaluationCode": 2,
+        "resultEvaluationDetails": {
+          "locale": "en-US",
+          "text": "Result was NOT Ok"
+        },
+        "acdc_JobStatus": 2
+      },
+      "resultContent": [
+        {
+          "dataModelTitle": "joiningresult",
+          "dataModelVersion": "3.0",
+          "overallResultValues": [
+            {
+              "physicalQuantity": 2,
+              "value": 4.7,
+              "resultEvaluation": "UNDEFINED",
+              "valueTag": 1,
+              "violationType": 2,
+              "lowLimit": 45.5,
+              "highLimit": 55,
+              "targetValue": 48
+            },
+            {
+              "physicalQuantity": 3,
+              "value": 0,
+              "resultEvaluation": "UNDEFINED",
+              "valueTag": 1,
+              "violationType": 2,
+              "lowLimit": 7,
+              "highLimit": 80
+            }
+          ],
+          "errors": [
+            {
+              "errorType": 1,
+              "errorId": "15",
+              "errorMessage": {
+                "locale": "en-US",
+                "text": "Trigger lost"
+              }
+            },
+            {
+              "errorType": 1,
+              "errorId": "833",
+              "errorMessage": {
+                "locale": "en-US",
+                "text": "TN_PF_Error_Torque_Low"
+              }
+            },
+            {
+              "errorType": 1,
+              "errorId": "834",
+              "errorMessage": {
+                "locale": "en-US",
+                "text": "TN_PF_Error_Angle_Low"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "paging": {
+    "count": 2,
+    "next": "http://127.0.0.1:7110/api/v3/results/tightening?programId=0050D604FB07-1-1&tagValue=GHA+570038&limit=2&_ct=14638866_2024-02-24+00%3a37%3a08.000000"
+  }
+}

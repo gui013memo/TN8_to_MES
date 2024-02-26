@@ -1,0 +1,164 @@
+{
+  "data": [
+    {
+      "dataModelTitle": "result",
+      "dataModelVersion": "3.0",
+      "resultMetaData": {
+        "sequenceNumber": 109480,
+        "tags": [
+          {
+            "name": "VIN",
+            "value": "JBW 136743",
+            "tagType": 2
+          }
+        ],
+        "reporterAssetId": "01d57b1f-c437-856d-f7ba-e2cd075e137d",
+        "generatorAssetId": "1c8d29d5-f6d2-321c-a680-a27f14780c44",
+        "programId": "0050D604FB07-3-1",
+        "programVersionId": "1696479844",
+        "resultId": "fed82ece-ee52-58b9-bbfe-e4770a48b98f",
+        "creationTime": "2024-02-26T04:32:48-03:00",
+        "resultEvaluation": "OK",
+        "resultEvaluationCode": 1,
+        "resultEvaluationDetails": {
+          "locale": "en-US",
+          "text": "Result was OK"
+        },
+        "acdc_JobStatus": 2
+      },
+      "resultContent": [
+        {
+          "dataModelTitle": "joiningresult",
+          "dataModelVersion": "3.0",
+          "overallResultValues": [
+            {
+              "physicalQuantity": 2,
+              "value": 48.65,
+              "resultEvaluation": "OK",
+              "valueTag": 1,
+              "lowLimit": 45.5,
+              "highLimit": 55,
+              "targetValue": 48
+            },
+            {
+              "physicalQuantity": 3,
+              "value": 21,
+              "resultEvaluation": "OK",
+              "valueTag": 1,
+              "lowLimit": 5,
+              "highLimit": 30
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "dataModelTitle": "result",
+      "dataModelVersion": "3.0",
+      "resultMetaData": {
+        "sequenceNumber": 109477,
+        "tags": [
+          {
+            "name": "VIN",
+            "value": "JBW 136726",
+            "tagType": 2
+          }
+        ],
+        "reporterAssetId": "01d57b1f-c437-856d-f7ba-e2cd075e137d",
+        "generatorAssetId": "1c8d29d5-f6d2-321c-a680-a27f14780c44",
+        "programId": "0050D604FB07-3-1",
+        "programVersionId": "1696479844",
+        "resultId": "bc9eb242-6931-501c-b705-67d1c436ac2f",
+        "creationTime": "2024-02-26T04:28:42-03:00",
+        "resultEvaluation": "OK",
+        "resultEvaluationCode": 1,
+        "resultEvaluationDetails": {
+          "locale": "en-US",
+          "text": "Result was OK"
+        },
+        "acdc_JobStatus": 2
+      },
+      "resultContent": [
+        {
+          "dataModelTitle": "joiningresult",
+          "dataModelVersion": "3.0",
+          "overallResultValues": [
+            {
+              "physicalQuantity": 2,
+              "value": 48.83,
+              "resultEvaluation": "OK",
+              "valueTag": 1,
+              "lowLimit": 45.5,
+              "highLimit": 55,
+              "targetValue": 48
+            },
+            {
+              "physicalQuantity": 3,
+              "value": 27,
+              "resultEvaluation": "OK",
+              "valueTag": 1,
+              "lowLimit": 5,
+              "highLimit": 30
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "dataModelTitle": "result",
+      "dataModelVersion": "3.0",
+      "resultMetaData": {
+        "sequenceNumber": 109473,
+        "tags": [
+          {
+            "name": "VIN",
+            "value": "JBW 136751",
+            "tagType": 2
+          }
+        ],
+        "reporterAssetId": "01d57b1f-c437-856d-f7ba-e2cd075e137d",
+        "generatorAssetId": "1c8d29d5-f6d2-321c-a680-a27f14780c44",
+        "programId": "0050D604FB07-3-1",
+        "programVersionId": "1696479844",
+        "resultId": "705c5de2-83e9-51a7-addd-3941dd10c6b1",
+        "creationTime": "2024-02-26T04:22:51-03:00",
+        "resultEvaluation": "OK",
+        "resultEvaluationCode": 1,
+        "resultEvaluationDetails": {
+          "locale": "en-US",
+          "text": "Result was OK"
+        },
+        "acdc_JobStatus": 2
+      },
+      "resultContent": [
+        {
+          "dataModelTitle": "joiningresult",
+          "dataModelVersion": "3.0",
+          "overallResultValues": [
+            {
+              "physicalQuantity": 2,
+              "value": 48.49,
+              "resultEvaluation": "OK",
+              "valueTag": 1,
+              "lowLimit": 45.5,
+              "highLimit": 55,
+              "targetValue": 48
+            },
+            {
+              "physicalQuantity": 3,
+              "value": 27,
+              "resultEvaluation": "OK",
+              "valueTag": 1,
+              "lowLimit": 5,
+              "highLimit": 30
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "paging": {
+    "count": 3,
+    "next": "http://127.0.0.1:7110/api/v3/results/tightening?programId=0050D604FB07-3-1&limit=3&_ct=14704884_2024-02-26+04%3a22%3a51.000000"
+  }
+}
