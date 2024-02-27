@@ -35,7 +35,9 @@ namespace TN8_to_MES
 
         int startmemory = 0;
 
-
+        int ghTimerWaiter = 0;
+        int cvTimerWaiter = 0;
+        int jbTimerWaiter = 0;
 
 
         SqlConnection cnn;
@@ -299,6 +301,14 @@ namespace TN8_to_MES
             if (!CV_checkBox.Checked)
                 TimerCV.Stop();
 
+            if (cvTimerWaiter > 0)
+            {
+                textBox1.Text += "\r\n CV Waiter: " + cvTimerWaiter.ToString();
+                logger.Log("CV Waiter:" + cvTimerWaiter.ToString());
+                cvTimerWaiter--;
+                return;
+            }
+
             if (startmemory == 1 && CV_checkBox.Checked)
             {
                 TimerCV.Stop();
@@ -323,6 +333,8 @@ namespace TN8_to_MES
                 catch (Exception exc)
                 {
                     logger.Log("Error on http request: " + exc.ToString() + "\r\n exiting from TimerCV_Tick function... \r\n");
+
+                    cvTimerWaiter = 10;
                     TimerCV.Start();
                     return;
                 }
@@ -343,6 +355,8 @@ namespace TN8_to_MES
                     logger.Log("Request with error on response: \r\n" +
                         "RAW JSON: " + str);
                     textBox1.Text = "Error on get results from CV";
+
+                    cvTimerWaiter = 10;
                     TimerCV.Start();
                     return;
                 }
@@ -490,6 +504,14 @@ namespace TN8_to_MES
             if (!GH_checkBox.Checked)
                 TimerGH.Stop();
 
+            if (ghTimerWaiter > 0 )
+            {
+                textBox1.Text += "\r\n GH Waiter: " + ghTimerWaiter.ToString();
+                logger.Log("GH Waiter:" + ghTimerWaiter.ToString());
+                ghTimerWaiter--;
+                return;
+            }
+
             if (startmemory == 1 && GH_checkBox.Checked)
             {
                 TimerGH.Stop();
@@ -498,10 +520,10 @@ namespace TN8_to_MES
 
                 TimerGH_btn.BackColor = Color.Green;
 
-                ResultData[] ResultData = new ResultData[3];
+                ResultData[] ResultData = new ResultData[4];
 
                 //Current quantity of results = 3 <-------
-                string httpRequest = "http://127.0.0.1:7110/api/v3/results/tightening?programId=0050D604FB07-1-1&limit=3";
+                string httpRequest = "http://127.0.0.1:7110/api/v3/results/tightening?programId=0050D604FB07-1-1&limit=4";
                 var httpClient = new HttpClient();
                 HttpResponseMessage resp;
                 string str;
@@ -514,6 +536,8 @@ namespace TN8_to_MES
                 catch (Exception exc)
                 {
                     logger.Log("Error on http request: " + exc.ToString() + "\r\n exiting from TimerGH_Tick function... \r\n");
+
+                    ghTimerWaiter = 15;
                     TimerGH.Start();
                     return;
                 }
@@ -534,6 +558,8 @@ namespace TN8_to_MES
                     logger.Log("Request with error on response: \r\n" +
                         "RAW JSON: " + str);
                     textBox1.Text = "Error on get results from GH";
+
+                    ghTimerWaiter = 15;
                     TimerGH.Start();
                     return;
                 }
@@ -541,7 +567,7 @@ namespace TN8_to_MES
                 {
                     var jsonData = JsonConvert.DeserializeObject<Data1>(str);
 
-                    for (int i = 0; i < 3; i++)
+                    for (int i = 0; i < 4; i++)
                     {
                         try
                         {
@@ -560,13 +586,15 @@ namespace TN8_to_MES
                         {
                             logger.Log("@@ ERROR @@ ON DATA TRANSFER BETWEEN JSON DATA AND RESULTDATA[:" + i.ToString() +  "\r\n" +
                                     "RAW JSON: " + str + "\r\nException message: \r\n" + exc.Message + "\r\n exiting from TimerGH_Tick function... \r\n");
-                            //TimerGH.Start();
-                            //return;
+
+                            ghTimerWaiter = 15;
+                            TimerGH.Start();
+                            return;
                         }
 
                     }
 
-                    for (int i = 0; i < 3; i++)
+                    for (int i = 0; i < 4; i++)
                     {
                         string resultCompare = CheckLastResultId(ResultData[i].currentResultId);
 
@@ -681,6 +709,14 @@ namespace TN8_to_MES
             if (!JB_checkBox.Checked)
                 TimerJB.Stop();
 
+            if (jbTimerWaiter > 0)
+            {
+                textBox1.Text += "\r\n JB Waiter: " + jbTimerWaiter.ToString();
+                logger.Log("JB Waiter:" + jbTimerWaiter.ToString());
+                jbTimerWaiter--;
+                return;
+            }
+
             if (startmemory == 1 && JB_checkBox.Checked)
             {
                 TimerJB.Stop();
@@ -705,6 +741,8 @@ namespace TN8_to_MES
                 catch (Exception exc)
                 {
                     logger.Log("Error on http request: " + exc.ToString() + "\r\n exiting from TimerJB_Tick function... \r\n");
+
+                    jbTimerWaiter = 10;
                     TimerJB.Start();
                     return;
                 }
@@ -725,6 +763,8 @@ namespace TN8_to_MES
                     logger.Log("Request with error on response: \r\n" +
                         "RAW JSON: " + str);
                     textBox1.Text = "Error on get results from JB";
+
+                    jbTimerWaiter = 10;
                     TimerJB.Start();
                     return;
                 }
