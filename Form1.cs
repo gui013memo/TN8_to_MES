@@ -459,7 +459,7 @@ namespace TN8_to_MES
                                         cmd.Parameters.AddWithValue("@SEND_DATA", ResultData[i].send_data);
                                         cmd.Parameters.AddWithValue("@CREATE_TIME", ResultData[i].send_date);
                                         cmd.Parameters.AddWithValue("@CREATE_USER", ResultData[i].vin);
-                                        cmd.Parameters.AddWithValue("@RESULT_ID", "");
+                                        cmd.Parameters.AddWithValue("@RESULT_ID", ResultData[i].currentResultId);
                                         cmd.Parameters.AddWithValue("@PROGRAM_VERSION", "");
 
                                         string rowsAffected = cmd.ExecuteNonQuery().ToString();
@@ -475,7 +475,7 @@ namespace TN8_to_MES
                             }
                             catch (SqlException ex)
                             {
-                                logger.Log("[RESULTID] Insert Error:" +
+                                logger.Log("[Q_QUALITY_IF] Insert Error:" +
                                        "\r\nVIN: " + ResultData[i].vin +
                                        "\r\nResultId: " + ResultData[i].currentResultId +
                                        "\r\nSendData: " + ResultData[i].send_data +
@@ -664,7 +664,7 @@ namespace TN8_to_MES
                                         cmd.Parameters.AddWithValue("@SEND_DATA", ResultData[i].send_data);
                                         cmd.Parameters.AddWithValue("@CREATE_TIME", ResultData[i].send_date);
                                         cmd.Parameters.AddWithValue("@CREATE_USER", ResultData[i].vin);
-                                        cmd.Parameters.AddWithValue("@RESULT_ID", "");
+                                        cmd.Parameters.AddWithValue("@RESULT_ID", ResultData[i].currentResultId);
                                         cmd.Parameters.AddWithValue("@PROGRAM_VERSION", "");
 
                                         string rowsAffected = cmd.ExecuteNonQuery().ToString();
@@ -680,7 +680,7 @@ namespace TN8_to_MES
                             }
                             catch (SqlException ex)
                             {
-                                logger.Log("[RESULTID] Insert Error:" +
+                                logger.Log("[Q_QUALITY_IF] Insert Error:" +
                                        "\r\nVIN: " + ResultData[i].vin +
                                        "\r\nResultId: " + ResultData[i].currentResultId +
                                        "\r\nSendData: " + ResultData[i].send_data +
@@ -867,7 +867,7 @@ namespace TN8_to_MES
                                         cmd.Parameters.AddWithValue("@SEND_DATA", ResultData[i].send_data);
                                         cmd.Parameters.AddWithValue("@CREATE_TIME", ResultData[i].send_date);
                                         cmd.Parameters.AddWithValue("@CREATE_USER", ResultData[i].vin);
-                                        cmd.Parameters.AddWithValue("@RESULT_ID", "");
+                                        cmd.Parameters.AddWithValue("@RESULT_ID", ResultData[i].currentResultId);
                                         cmd.Parameters.AddWithValue("@PROGRAM_VERSION", "");
 
                                         string rowsAffected = cmd.ExecuteNonQuery().ToString();
@@ -883,7 +883,7 @@ namespace TN8_to_MES
                             }
                             catch (SqlException ex)
                             {
-                                logger.Log("[RESULTID] Insert Error:" +
+                                logger.Log("[Q_QUALITY_IF] Insert Error:" +
                                        "\r\nVIN: " + ResultData[i].vin +
                                        "\r\nResultId: " + ResultData[i].currentResultId +
                                        "\r\nSendData: " + ResultData[i].send_data +
