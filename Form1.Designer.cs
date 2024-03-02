@@ -181,7 +181,7 @@
             Controls.Add(textBox1);
             Controls.Add(Start_btn);
             Name = "Form1";
-            Text = "TN8_to_MES - v1.5";
+            Text = "TN8_to_MES - v1.5.1";
             ResumeLayout(false);
             PerformLayout();
         }

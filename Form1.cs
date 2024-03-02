@@ -421,7 +421,7 @@ namespace TN8_to_MES
                                 ResultData[i].send_date = jsonData.Data[i].ResultMetaData.CreationTime.Replace("-", string.Empty);
                                 ResultData[i].send_date = ResultData[i].send_date.Replace(":", string.Empty);
                                 ResultData[i].send_date = ResultData[i].send_date.Replace("T", string.Empty);
-                                ResultData[i].send_date = ResultData[i].send_date.Substring(i, 14);
+                                ResultData[i].send_date = ResultData[i].send_date.Substring(0, 14);
 
                                 // This ternary validation is necessary because when a result is NOK the string on ResultEvaluation is: NotOK (It must be "OK" or "NG")
                                 ResultData[i].resultEvaluation = jsonData.Data[i].ResultMetaData.ResultEvaluation == "OK" ? "OK" : "NG";
@@ -626,7 +626,7 @@ namespace TN8_to_MES
                                 ResultData[i].send_date = jsonData.Data[i].ResultMetaData.CreationTime.Replace("-", string.Empty);
                                 ResultData[i].send_date = ResultData[i].send_date.Replace(":", string.Empty);
                                 ResultData[i].send_date = ResultData[i].send_date.Replace("T", string.Empty);
-                                ResultData[i].send_date = ResultData[i].send_date.Substring(i, 14);
+                                ResultData[i].send_date = ResultData[i].send_date.Substring(0, 14);
 
                                 // This ternary validation is necessary because when a result is NOK the string on ResultEvaluation is: NotOK (It must be "OK" or "NG")
                                 ResultData[i].resultEvaluation = jsonData.Data[i].ResultMetaData.ResultEvaluation == "OK" ? "OK" : "NG";
@@ -829,7 +829,7 @@ namespace TN8_to_MES
                                 ResultData[i].send_date = jsonData.Data[i].ResultMetaData.CreationTime.Replace("-", string.Empty);
                                 ResultData[i].send_date = ResultData[i].send_date.Replace(":", string.Empty);
                                 ResultData[i].send_date = ResultData[i].send_date.Replace("T", string.Empty);
-                                ResultData[i].send_date = ResultData[i].send_date.Substring(i, 14);
+                                ResultData[i].send_date = ResultData[i].send_date.Substring(0, 14);
 
                                 // This ternary validation is necessary because when a result is NOK the string on ResultEvaluation is: NotOK (It must be "OK" or "NG")
                                 ResultData[i].resultEvaluation = jsonData.Data[i].ResultMetaData.ResultEvaluation == "OK" ? "OK" : "NG";
