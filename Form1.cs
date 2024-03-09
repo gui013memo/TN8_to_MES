@@ -317,10 +317,10 @@ namespace TN8_to_MES
 
                 TimerCV_btn.BackColor = Color.Green;
 
-                ResultData[] ResultData = new ResultData[3];
+                ResultData[] ResultData = new ResultData[10];
 
                 //Current quantity of results = 3 <-------
-                string httpRequest = "http://127.0.0.1:7110/api/v3/results/tightening?programId=0050D604FB07-2-1&limit=3";
+                string httpRequest = "http://127.0.0.1:7110/api/v3/results/tightening?programId=0050D604FB07-2-1&limit=10";
                 var httpClient = new HttpClient();
                 HttpResponseMessage resp;
                 string str;
@@ -334,7 +334,7 @@ namespace TN8_to_MES
                 {
                     logger.Log("Error on http request: " + exc.ToString() + "\r\n exiting from TimerCV_Tick function... \r\n");
 
-                    cvTimerWaiter = 10;
+                    cvTimerWaiter = 4;
                     TimerCV.Start();
                     return;
                 }
@@ -356,7 +356,7 @@ namespace TN8_to_MES
                         "RAW JSON: " + str);
                     textBox1.Text = "Error on get results from CV";
 
-                    cvTimerWaiter = 10;
+                    cvTimerWaiter = 4;
                     TimerCV.Start();
                     return;
                 }
@@ -364,7 +364,7 @@ namespace TN8_to_MES
                 {
                     var jsonData = JsonConvert.DeserializeObject<Data1>(str);
 
-                    for (int i = 0; i < 3; i++)
+                    for (int i = 0; i < 10; i++)
                     {
                         try
                         {
@@ -389,7 +389,7 @@ namespace TN8_to_MES
 
                     }
 
-                    for (int i = 0; i < 3; i++)
+                    for (int i = 0; i < 10; i++)
                     {
                         string resultCompare = CheckLastResultId(ResultData[i].currentResultId);
 
@@ -520,10 +520,10 @@ namespace TN8_to_MES
 
                 TimerGH_btn.BackColor = Color.Green;
 
-                ResultData[] ResultData = new ResultData[4];
+                ResultData[] ResultData = new ResultData[10];
 
                 //Current quantity of results = 3 <-------
-                string httpRequest = "http://127.0.0.1:7110/api/v3/results/tightening?programId=0050D604FB07-1-1&limit=4";
+                string httpRequest = "http://127.0.0.1:7110/api/v3/results/tightening?programId=0050D604FB07-1-1&limit=10";
                 var httpClient = new HttpClient();
                 HttpResponseMessage resp;
                 string str;
@@ -537,7 +537,7 @@ namespace TN8_to_MES
                 {
                     logger.Log("Error on http request: " + exc.ToString() + "\r\n exiting from TimerGH_Tick function... \r\n");
 
-                    ghTimerWaiter = 15;
+                    ghTimerWaiter = 4;
                     TimerGH.Start();
                     return;
                 }
@@ -559,7 +559,7 @@ namespace TN8_to_MES
                         "RAW JSON: " + str);
                     textBox1.Text = "Error on get results from GH";
 
-                    ghTimerWaiter = 15;
+                    ghTimerWaiter = 4;
                     TimerGH.Start();
                     return;
                 }
@@ -567,7 +567,7 @@ namespace TN8_to_MES
                 {
                     var jsonData = JsonConvert.DeserializeObject<Data1>(str);
 
-                    for (int i = 0; i < 4; i++)
+                    for (int i = 0; i < 10; i++)
                     {
                         try
                         {
@@ -587,14 +587,14 @@ namespace TN8_to_MES
                             logger.Log("@@ ERROR @@ ON DATA TRANSFER BETWEEN JSON DATA AND RESULTDATA[:" + i.ToString() +  "\r\n" +
                                     "RAW JSON: " + str + "\r\nException message: \r\n" + exc.Message + "\r\n exiting from TimerGH_Tick function... \r\n");
 
-                            ghTimerWaiter = 15;
+                            ghTimerWaiter = 4;
                             TimerGH.Start();
                             return;
                         }
 
                     }
 
-                    for (int i = 0; i < 4; i++)
+                    for (int i = 0; i < 10; i++)
                     {
                         string resultCompare = CheckLastResultId(ResultData[i].currentResultId);
 
@@ -725,10 +725,10 @@ namespace TN8_to_MES
 
                 TimerJB_btn.BackColor = Color.Green;
 
-                ResultData[] ResultData = new ResultData[3];
+                ResultData[] ResultData = new ResultData[10];
 
                 //Current quantity of results = 3 <-------
-                string httpRequest = "http://127.0.0.1:7110/api/v3/results/tightening?programId=0050D604FB07-3-1&limit=3";
+                string httpRequest = "http://127.0.0.1:7110/api/v3/results/tightening?programId=0050D604FB07-3-1&limit=10";
                 var httpClient = new HttpClient();
                 HttpResponseMessage resp;
                 string str;
@@ -742,7 +742,7 @@ namespace TN8_to_MES
                 {
                     logger.Log("Error on http request: " + exc.ToString() + "\r\n exiting from TimerJB_Tick function... \r\n");
 
-                    jbTimerWaiter = 10;
+                    jbTimerWaiter = 4;
                     TimerJB.Start();
                     return;
                 }
@@ -764,7 +764,7 @@ namespace TN8_to_MES
                         "RAW JSON: " + str);
                     textBox1.Text = "Error on get results from JB";
 
-                    jbTimerWaiter = 10;
+                    jbTimerWaiter = 4;
                     TimerJB.Start();
                     return;
                 }
@@ -772,7 +772,7 @@ namespace TN8_to_MES
                 {
                     var jsonData = JsonConvert.DeserializeObject<Data1>(str);
 
-                    for (int i = 0; i < 3; i++)
+                    for (int i = 0; i < 10; i++)
                     {
                         try
                         {
@@ -797,7 +797,7 @@ namespace TN8_to_MES
 
                     }
 
-                    for (int i = 0; i < 3; i++)
+                    for (int i = 0; i < 10; i++)
                     {
                         string resultCompare = CheckLastResultId(ResultData[i].currentResultId);
 

@@ -66,7 +66,7 @@
             // 
             // TimerCV
             // 
-            TimerCV.Interval = 6000;
+            TimerCV.Interval = 60000;
             TimerCV.Tick += TimerCV_Tick;
             // 
             // Stop_btn
@@ -81,12 +81,12 @@
             // 
             // TimerGH
             // 
-            TimerGH.Interval = 3000;
+            TimerGH.Interval = 30000;
             TimerGH.Tick += TimerGH_Tick;
             // 
             // TimerJB
             // 
-            TimerJB.Interval = 9000;
+            TimerJB.Interval = 35000;
             TimerJB.Tick += TimerJB_Tick;
             // 
             // TimerCV_btn
