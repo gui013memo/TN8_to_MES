@@ -1,19 +1,9 @@
 using Newtonsoft.Json;
-using System.Dynamic;
-using System.Text.Json.Nodes;
 using System.Data.SqlClient;
-using static System.Net.Mime.MediaTypeNames;
-using static TN8_to_MES.Form1;
-using static System.Windows.Forms.Design.AxImporter;
-using EngineNumber_checker;
-using System.Net.Http;
-using System.Linq;
-using System.Text;
-
 
 namespace TN8_to_MES
 {
-    public partial class Form1 : Form
+    public partial class mainForm : Form
     {
 
         public partial class ResultData
@@ -33,12 +23,11 @@ namespace TN8_to_MES
             public string resultEvaluation = string.Empty;
         }
 
-        int startmemory = 0;
+        int startMemory = 0;
 
         int ghTimerWaiter = 0;
         int cvTimerWaiter = 0;
         int jbTimerWaiter = 0;
-
 
         SqlConnection cnn;
         SqlCommand command;
@@ -206,7 +195,7 @@ namespace TN8_to_MES
             public Uri Next { get; set; }
         }
 
-        public Form1()
+        public mainForm()
         {
             InitializeComponent();
             logger.Log("TN8_to_ME-app Opened");
@@ -218,20 +207,31 @@ namespace TN8_to_MES
             logger.Log("TN8_to_ME-app Closed");
         }
 
-        private void Start_btn_Click(object sender, EventArgs e)
+        private void StartButton_Click(object sender, EventArgs e)
         {
-            if (GH_checkBox.Checked || CV_checkBox.Checked || JB_checkBox.Checked)
+            if (ghCheckBox.Checked || cvCheckBox.Checked || jbCheckBox.Checked)
             {
                 logger.Log("TN8_to_MES-app started");
 
-                startmemory = 1;
+                startMemory = 1;
 
-                TimerCV.Start();
-                TimerGH.Start();
-                TimerJB.Start();
+                timerCV.Start();
+                timerGH.Start();
+                timerJB.Start();
 
                 //TimerJB_Tick(null, null);
             }
+        }
+
+        private void StopButton_Click(object sender, EventArgs e)
+        {
+            startMemory = 0;
+            timerCV.Stop();
+            timerGH.Stop();
+            timerJB.Stop();
+
+            consoleTextBox.Text += "App stopped";
+            logger.Log("TN8_to_MES-App stopped");
         }
 
         private string CheckLastResultId(string resultId)
@@ -292,30 +292,216 @@ namespace TN8_to_MES
                        "\r\nEXCEPTION MESSAGE:" +
                        "\r\n" + ex.Message);
 
-                textBox1.Text += "@@Error inserting on [RESULTID]";
-            } 
+                consoleTextBox.Text += "@@Error inserting on [RESULTID]";
+            }
+        }
+
+        private async void GetUnifyResults (string httpRequest, System.Windows.Forms.Timer timer)
+        {
+            //public async Task<bool> doAsyncOperation()
+            //{
+            //    // do work
+            //    return true;
+            //}
+
+            //bool result = await doAsyncOperation();
+
+            ResultData[] ResultData = new ResultData[10];
+
+            var httpClient = new HttpClient();
+            HttpResponseMessage httpResponseMessage;
+            string httpResponseMessageContent;
+
+            try
+            {
+                httpResponseMessage = await httpClient.GetAsync(httpRequest);
+                httpResponseMessageContent = await httpResponseMessage.Content.ReadAsStringAsync();
+            }
+            catch (Exception exc)
+            {
+                logger.Log("Error on http request: " + exc.ToString() + "\r\n exiting from TimerJB_Tick function... \r\n");
+
+                jbTimerWaiter = 4;
+                timer.Start();
+                return;
+            }
+
+            //LOCAL TEST CODE
+            //{
+            // string str = File.ReadAllText(@"C:\Users\gui01\OneDrive\Documents\Drive\Drive\Workspaces\ws-VS2022\C#\TN8_to_MES-master\TN8_to_MES\Req-responses\t1.json", Encoding.UTF8);
+            //string httpRequest = "local TEST-NO-REQ-DONE";
+            //}
+            //LOCAL TEST CODE
+
+
+            /*----------------------------*/
+
+            if (httpResponseMessageContent.Contains(@"""title"": ""An error has occurred."""))
+            {
+                logger.Log("Request with error on response: \r\n" +
+                    "RAW JSON: " + httpResponseMessageContent);
+                consoleTextBox.Text = "Error on get results from JB";
+
+                jbTimerWaiter = 4;
+                timerJB.Start();
+                return;
+            }
+            else
+            {
+                var jsonData = JsonConvert.DeserializeObject<Data1>(httpResponseMessageContent);
+
+                for (int i = 0; i < 10; i++)
+                {
+                    try
+                    {
+                        ResultData[i] = new ResultData();
+
+                        ResultData[i].currentResultId = jsonData.Data[i].ResultMetaData.ResultId.ToString();
+                        ResultData[i].currentProgramversion = jsonData.Data[i].ResultMetaData.programVersionId.ToString();
+                        ResultData[i].vin = jsonData.Data[i].ResultMetaData.Tags[0].Value;
+
+                        logger.Log("JB Request done: " + httpRequest +
+                        "\r\nResultId: " + ResultData[i].currentResultId +
+                        "\r\nVIN: " + ResultData[i].vin +
+                        "\r\nProgramVersion: " + ResultData[i].currentProgramversion);
+                    }
+                    catch (Exception exc)
+                    {
+                        logger.Log("@@ ERROR @@ ON DATA TRANSFER BETWEEN JSON DATA AND RESULTDATA[:" + i.ToString() + "\r\n" +
+                                "RAW JSON: " + httpResponseMessageContent + "\r\nException message: \r\n" + exc.Message + "\r\n exiting from TimerJB_Tick function... \r\n");
+                        //TimerJB.Start();
+                        //return;
+                    }
+
+                }
+
+                for (int i = 0; i < 10; i++)
+                {
+                    string resultCompare = CheckLastResultId(ResultData[i].currentResultId);
+
+                    if (ResultData[i].currentResultId == resultCompare)
+                    {
+                        // Repeated result
+                        logger.Log("COMPARATION EVALUATION: --REPEATED RESULT ON TAG: " + ResultData[i].vin +
+                                "\r\nResultId from http request: " + ResultData[i].currentResultId +
+                                "\r\nResultId on [RESULTID] table: " + resultCompare);
+
+                        consoleTextBox.Text += "\r\n--REPEATED RESULT ON TAG: " + ResultData[i].vin;
+                    }
+                    else
+                    {
+                        // New result to insert
+                        logger.Log("COMPARATION EVALUATION: ++NEW RESULT ON TAG: " + ResultData[i].vin +
+                                "\r\nResultId from http request: " + ResultData[i].vin +
+                                "\r\nResultId on [RESULTID] table: " + resultCompare);
+
+                        consoleTextBox.Text += "\r\n++NEW RESULT ON TAG: " + ResultData[i].vin;
+
+                        InsertOnResultIdTable(ResultData[i]);
+
+                        // #START of formatting for MES format -------------
+                        {
+                            ResultData[i].vin = jsonData.Data[i].ResultMetaData.Tags[0].Value;
+
+                            //
+                            ResultData[i].send_date = jsonData.Data[i].ResultMetaData.CreationTime.Replace("-", string.Empty);
+                            ResultData[i].send_date = ResultData[i].send_date.Replace(":", string.Empty);
+                            ResultData[i].send_date = ResultData[i].send_date.Replace("T", string.Empty);
+                            ResultData[i].send_date = ResultData[i].send_date.Substring(0, 14);
+
+                            // This ternary validation is necessary because when a result is NOK the string on ResultEvaluation is: NotOK (It must be "OK" or "NG")
+                            ResultData[i].resultEvaluation = jsonData.Data[i].ResultMetaData.ResultEvaluation == "OK" ? "OK" : "NG";
+
+                            ResultData[i].torque = jsonData.Data[i].ResultContent[0].OverallResultValues[0].Value.ToString();
+                            ResultData[i].torque = ResultData[i].torque.Replace(".", ",");
+
+                            ResultData[i].send_data = ResultData[i].vin +
+                                ";" + ResultData[i].send_date.Substring(0, 8) +
+                                ";" + ResultData[i].send_date.Substring(8, 6) +
+                                ";" + ResultData[i].dev_id +
+                                ";" + ResultData[i].resultEvaluation +
+                                ";" + ResultData[i].torque + ";";
+                        }
+                        // #END of formatting for MES format
+
+
+                        // Inserting on Q_QUALITY_IF -------------
+                        try
+                        {
+                            string sql = "insert into [dbo].[Q_QUALITY_IF] (DEV_ID,SEND_DATE,SEND_SERIAL,DATA_SIZE,DATA_TYPE," +
+                                "SEND_DATA,CREATE_TIME,CREATE_USER,RESULT_ID,PROGRAM_VERSION) " +
+                                "values (@DEV_ID,@SEND_DATE,@SEND_SERIAL,@DATA_SIZE,@DATA_TYPE,@SEND_DATA,@CREATE_TIME," +
+                                "@CREATE_USER,@RESULT_ID,@PROGRAM_VERSION)";
+
+                            using (SqlConnection conn = new SqlConnection(connectionString))
+                            {
+                                conn.Open();
+                                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                                {
+                                    cmd.Parameters.AddWithValue("@DEV_ID", "DIAP080");
+                                    cmd.Parameters.AddWithValue("@SEND_DATE", ResultData[i].send_date);
+                                    cmd.Parameters.AddWithValue("@SEND_SERIAL", "1");
+                                    cmd.Parameters.AddWithValue("@DATA_SIZE", "44");
+                                    cmd.Parameters.AddWithValue("@DATA_TYPE", "QR");
+                                    cmd.Parameters.AddWithValue("@SEND_DATA", ResultData[i].send_data);
+                                    cmd.Parameters.AddWithValue("@CREATE_TIME", ResultData[i].send_date);
+                                    cmd.Parameters.AddWithValue("@CREATE_USER", ResultData[i].vin);
+                                    cmd.Parameters.AddWithValue("@RESULT_ID", ResultData[i].currentResultId);
+                                    cmd.Parameters.AddWithValue("@PROGRAM_VERSION", "");
+
+                                    string rowsAffected = cmd.ExecuteNonQuery().ToString();
+
+                                    logger.Log("Inserted (" + rowsAffected + ") rows on [Q_QUALITY_IF] table: " +
+                                            "\r\nVIN: " + ResultData[i].vin +
+                                            "\r\nResultId: " + ResultData[i].currentResultId +
+                                            "\r\nSendData: " + ResultData[i].send_data);
+
+                                    consoleTextBox.Text += "\r\nInserted on [Q_QUALITY_IF] TAG: " + ResultData[i].vin + "(" + ResultData[i].resultEvaluation + ")";
+                                }
+                            }
+                        }
+                        catch (SqlException ex)
+                        {
+                            logger.Log("[Q_QUALITY_IF] Insert Error:" +
+                                   "\r\nVIN: " + ResultData[i].vin +
+                                   "\r\nResultId: " + ResultData[i].currentResultId +
+                                   "\r\nSendData: " + ResultData[i].send_data +
+                                   "\r\nEXCEPTION MESSAGE:" +
+                                   "\r\n" + ex.Message);
+
+                            consoleTextBox.Text += "@@ ERROR @@ INSERTING ON [Q_QUALITY_IF] TAG: " + ResultData[i].vin + "\r\n exiting from TimerJB_Tick function... \r\n";
+                            //TimerJB.Start();
+                            //return; 
+                        }
+                    }
+                }
+
+                consoleTextBox.Text += "\r\nEnd of JB Timer tick\r\n---------------------\r\n";
+                logger.Log("End of JB Timer tick");
+                timerJBButton.BackColor = Color.White;
+
+                if (startMemory == 1 && jbCheckBox.Checked)
+                    timerJB.Start();
+            }
         }
 
         private async void TimerCV_Tick(object sender, EventArgs e)
         {
-            if (!CV_checkBox.Checked)
-                TimerCV.Stop();
-
             if (cvTimerWaiter > 0)
             {
-                textBox1.Text += "\r\n CV Waiter: " + cvTimerWaiter.ToString();
+                consoleTextBox.Text += "\r\n CV Waiter: " + cvTimerWaiter.ToString();
                 logger.Log("CV Waiter:" + cvTimerWaiter.ToString());
                 cvTimerWaiter--;
                 return;
             }
 
-            if (startmemory == 1 && CV_checkBox.Checked)
+            if (startMemory == 1)
             {
-                TimerCV.Stop();
-                textBox1.Text += "Timer CV tick occurred \r\n";
+                timerCV.Stop();
+                consoleTextBox.Text += "Timer CV tick occurred \r\n";
                 logger.Log("Timer CV tick occurred");
 
-                TimerCV_btn.BackColor = Color.Green;
+                timerCVButton.BackColor = Color.Green;
 
                 ResultData[] ResultData = new ResultData[10];
 
@@ -335,7 +521,7 @@ namespace TN8_to_MES
                     logger.Log("Error on http request: " + exc.ToString() + "\r\n exiting from TimerCV_Tick function... \r\n");
 
                     cvTimerWaiter = 4;
-                    TimerCV.Start();
+                    timerCV.Start();
                     return;
                 }
 
@@ -348,16 +534,16 @@ namespace TN8_to_MES
                 }
                 //LOCAL TEST CODE
 
-
+                /*--------------------------------*/
 
                 if (str.Contains(@"""title"": ""An error has occurred."""))
                 {
                     logger.Log("Request with error on response: \r\n" +
                         "RAW JSON: " + str);
-                    textBox1.Text = "Error on get results from CV";
+                    consoleTextBox.Text = "Error on get results from CV";
 
                     cvTimerWaiter = 4;
-                    TimerCV.Start();
+                    timerCV.Start();
                     return;
                 }
                 else
@@ -381,7 +567,7 @@ namespace TN8_to_MES
                         }
                         catch (Exception exc)
                         {
-                            logger.Log("@@ ERROR @@ ON DATA TRANSFER BETWEEN JSON DATA AND RESULTDATA[:" + i.ToString() +  "\r\n" +
+                            logger.Log("@@ ERROR @@ ON DATA TRANSFER BETWEEN JSON DATA AND RESULTDATA[:" + i.ToString() + "\r\n" +
                                     "RAW JSON: " + str + "\r\nException message: \r\n" + exc.Message + "\r\n exiting from TimerCV_Tick function... \r\n");
                             //TimerCV.Start();
                             //return;
@@ -400,7 +586,7 @@ namespace TN8_to_MES
                                     "\r\nResultId from http request: " + ResultData[i].currentResultId +
                                     "\r\nResultId on [RESULTID] table: " + resultCompare);
 
-                            textBox1.Text += "\r\n--REPEATED RESULT ON TAG: " + ResultData[i].vin;
+                            consoleTextBox.Text += "\r\n--REPEATED RESULT ON TAG: " + ResultData[i].vin;
                         }
                         else
                         {
@@ -409,7 +595,7 @@ namespace TN8_to_MES
                                     "\r\nResultId from http request: " + ResultData[i].vin +
                                     "\r\nResultId on [RESULTID] table: " + resultCompare);
 
-                            textBox1.Text += "\r\n++NEW RESULT ON TAG: " + ResultData[i].vin;
+                            consoleTextBox.Text += "\r\n++NEW RESULT ON TAG: " + ResultData[i].vin;
 
                             InsertOnResultIdTable(ResultData[i]);
 
@@ -421,12 +607,13 @@ namespace TN8_to_MES
                                 ResultData[i].send_date = jsonData.Data[i].ResultMetaData.CreationTime.Replace("-", string.Empty);
                                 ResultData[i].send_date = ResultData[i].send_date.Replace(":", string.Empty);
                                 ResultData[i].send_date = ResultData[i].send_date.Replace("T", string.Empty);
-                                ResultData[i].send_date = ResultData[i].send_date.Substring(0, 14);
+                                ResultData[i].send_date = ResultData[i].send_date[..14];
 
                                 // This ternary validation is necessary because when a result is NOK the string on ResultEvaluation is: NotOK (It must be "OK" or "NG")
                                 ResultData[i].resultEvaluation = jsonData.Data[i].ResultMetaData.ResultEvaluation == "OK" ? "OK" : "NG";
 
                                 ResultData[i].torque = jsonData.Data[i].ResultContent[0].OverallResultValues[0].Value.ToString();
+                                ResultData[i].torque = ResultData[i].torque.Replace(".", ",");
 
                                 ResultData[i].send_data = ResultData[i].vin +
                                     ";" + ResultData[i].send_date.Substring(0, 8) +
@@ -469,7 +656,7 @@ namespace TN8_to_MES
                                                 "\r\nResultId: " + ResultData[i].currentResultId +
                                                 "\r\nSendData: " + ResultData[i].send_data);
 
-                                        textBox1.Text += "\r\nInserted on [Q_QUALITY_IF] TAG: " + ResultData[i].vin + "(" + ResultData[i].resultEvaluation + ")";
+                                        consoleTextBox.Text += "\r\nInserted on [Q_QUALITY_IF] TAG: " + ResultData[i].vin + "(" + ResultData[i].resultEvaluation + ")";
                                     }
                                 }
                             }
@@ -482,43 +669,40 @@ namespace TN8_to_MES
                                        "\r\nEXCEPTION MESSAGE:" +
                                        "\r\n" + ex.Message);
 
-                                textBox1.Text += "@@ ERROR @@ INSERTING ON [Q_QUALITY_IF] TAG: " + ResultData[i].vin + "\r\n exiting from TimerCV_Tick function... \r\n";
+                                consoleTextBox.Text += "@@ ERROR @@ INSERTING ON [Q_QUALITY_IF] TAG: " + ResultData[i].vin + "\r\n exiting from TimerCV_Tick function... \r\n";
                                 //TimerCV.Start();
                                 //return;
                             }
                         }
                     }
 
-                    textBox1.Text += "\r\nEnd of CV Timer tick\r\n---------------------\r\n";
+                    consoleTextBox.Text += "\r\nEnd of CV Timer tick\r\n---------------------\r\n";
                     logger.Log("End of CV Timer tick");
-                    TimerCV_btn.BackColor = Color.White;
+                    timerCVButton.BackColor = Color.White;
 
-                    if (startmemory == 1 && CV_checkBox.Checked)
-                        TimerCV.Start();
+                    if (startMemory == 1 && cvCheckBox.Checked)
+                        timerCV.Start();
                 }
             }
         }
 
         private async void TimerGH_Tick(object sender, EventArgs e)
         {
-            if (!GH_checkBox.Checked)
-                TimerGH.Stop();
-
-            if (ghTimerWaiter > 0 )
+            if (ghTimerWaiter > 0)
             {
-                textBox1.Text += "\r\n GH Waiter: " + ghTimerWaiter.ToString();
+                consoleTextBox.Text += "\r\n GH Waiter: " + ghTimerWaiter.ToString();
                 logger.Log("GH Waiter:" + ghTimerWaiter.ToString());
                 ghTimerWaiter--;
                 return;
             }
 
-            if (startmemory == 1 && GH_checkBox.Checked)
+            if (startMemory == 1 && ghCheckBox.Checked)
             {
-                TimerGH.Stop();
-                textBox1.Text += "Timer GH tick occurred \r\n";
+                timerGH.Stop();
+                consoleTextBox.Text += "Timer GH tick occurred \r\n";
                 logger.Log("Timer GH tick occurred");
 
-                TimerGH_btn.BackColor = Color.Green;
+                timerGHButton.BackColor = Color.Green;
 
                 ResultData[] ResultData = new ResultData[10];
 
@@ -538,7 +722,7 @@ namespace TN8_to_MES
                     logger.Log("Error on http request: " + exc.ToString() + "\r\n exiting from TimerGH_Tick function... \r\n");
 
                     ghTimerWaiter = 4;
-                    TimerGH.Start();
+                    timerGH.Start();
                     return;
                 }
 
@@ -557,10 +741,10 @@ namespace TN8_to_MES
                 {
                     logger.Log("Request with error on response: \r\n" +
                         "RAW JSON: " + str);
-                    textBox1.Text = "Error on get results from GH";
+                    consoleTextBox.Text = "Error on get results from GH";
 
                     ghTimerWaiter = 4;
-                    TimerGH.Start();
+                    timerGH.Start();
                     return;
                 }
                 else
@@ -584,11 +768,11 @@ namespace TN8_to_MES
                         }
                         catch (Exception exc)
                         {
-                            logger.Log("@@ ERROR @@ ON DATA TRANSFER BETWEEN JSON DATA AND RESULTDATA[:" + i.ToString() +  "\r\n" +
+                            logger.Log("@@ ERROR @@ ON DATA TRANSFER BETWEEN JSON DATA AND RESULTDATA[:" + i.ToString() + "\r\n" +
                                     "RAW JSON: " + str + "\r\nException message: \r\n" + exc.Message + "\r\n exiting from TimerGH_Tick function... \r\n");
 
                             ghTimerWaiter = 4;
-                            TimerGH.Start();
+                            timerGH.Start();
                             return;
                         }
 
@@ -605,7 +789,7 @@ namespace TN8_to_MES
                                     "\r\nResultId from http request: " + ResultData[i].currentResultId +
                                     "\r\nResultId on [RESULTID] table: " + resultCompare);
 
-                            textBox1.Text += "\r\n--REPEATED RESULT ON TAG: " + ResultData[i].vin;
+                            consoleTextBox.Text += "\r\n--REPEATED RESULT ON TAG: " + ResultData[i].vin;
                         }
                         else
                         {
@@ -614,7 +798,7 @@ namespace TN8_to_MES
                                     "\r\nResultId from http request: " + ResultData[i].vin +
                                     "\r\nResultId on [RESULTID] table: " + resultCompare);
 
-                            textBox1.Text += "\r\n++NEW RESULT ON TAG: " + ResultData[i].vin;
+                            consoleTextBox.Text += "\r\n++NEW RESULT ON TAG: " + ResultData[i].vin;
 
                             InsertOnResultIdTable(ResultData[i]);
 
@@ -632,209 +816,7 @@ namespace TN8_to_MES
                                 ResultData[i].resultEvaluation = jsonData.Data[i].ResultMetaData.ResultEvaluation == "OK" ? "OK" : "NG";
 
                                 ResultData[i].torque = jsonData.Data[i].ResultContent[0].OverallResultValues[0].Value.ToString();
-
-                                ResultData[i].send_data = ResultData[i].vin +
-                                    ";" + ResultData[i].send_date.Substring(0, 8) +
-                                    ";" + ResultData[i].send_date.Substring(8, 6) +
-                                    ";" + ResultData[i].dev_id +
-                                    ";" + ResultData[i].resultEvaluation +
-                                    ";" + ResultData[i].torque + ";";
-                            }
-                            // #END of formatting for MES format
-
-
-                            // Inserting on Q_QUALITY_IF -------------
-                            try
-                            {
-                                 string sql = "insert into [dbo].[Q_QUALITY_IF] (DEV_ID,SEND_DATE,SEND_SERIAL,DATA_SIZE,DATA_TYPE," +
-                                    "SEND_DATA,CREATE_TIME,CREATE_USER,RESULT_ID,PROGRAM_VERSION) " +
-                                    "values (@DEV_ID,@SEND_DATE,@SEND_SERIAL,@DATA_SIZE,@DATA_TYPE,@SEND_DATA,@CREATE_TIME," +
-                                    "@CREATE_USER,@RESULT_ID,@PROGRAM_VERSION)";
-
-                                using (SqlConnection conn = new SqlConnection(connectionString))
-                                {
-                                    conn.Open();
-                                    using (SqlCommand cmd = new SqlCommand(sql, conn))
-                                    {
-                                        cmd.Parameters.AddWithValue("@DEV_ID", "DIAP080");
-                                        cmd.Parameters.AddWithValue("@SEND_DATE", ResultData[i].send_date);
-                                        cmd.Parameters.AddWithValue("@SEND_SERIAL", "1");
-                                        cmd.Parameters.AddWithValue("@DATA_SIZE", "44");
-                                        cmd.Parameters.AddWithValue("@DATA_TYPE", "QR");
-                                        cmd.Parameters.AddWithValue("@SEND_DATA", ResultData[i].send_data);
-                                        cmd.Parameters.AddWithValue("@CREATE_TIME", ResultData[i].send_date);
-                                        cmd.Parameters.AddWithValue("@CREATE_USER", ResultData[i].vin);
-                                        cmd.Parameters.AddWithValue("@RESULT_ID", ResultData[i].currentResultId);
-                                        cmd.Parameters.AddWithValue("@PROGRAM_VERSION", "");
-
-                                        string rowsAffected = cmd.ExecuteNonQuery().ToString();
-
-                                        logger.Log("Inserted (" + rowsAffected + ") rows on [Q_QUALITY_IF] table: " +
-                                                "\r\nVIN: " + ResultData[i].vin +
-                                                "\r\nResultId: " + ResultData[i].currentResultId +
-                                                "\r\nSendData: " + ResultData[i].send_data);
-
-                                        textBox1.Text += "\r\nInserted on [Q_QUALITY_IF] TAG: " + ResultData[i].vin + "(" + ResultData[i].resultEvaluation + ")";
-                                    }
-                                }
-                            }
-                            catch (SqlException ex)
-                            {
-                                logger.Log("[Q_QUALITY_IF] Insert Error:" +
-                                       "\r\nVIN: " + ResultData[i].vin +
-                                       "\r\nResultId: " + ResultData[i].currentResultId +
-                                       "\r\nSendData: " + ResultData[i].send_data +
-                                       "\r\nEXCEPTION MESSAGE:" +
-                                       "\r\n" + ex.Message);
-
-                                textBox1.Text += "@@ ERROR @@ INSERTING ON [Q_QUALITY_IF] TAG: " + ResultData[i].vin + "\r\n exiting from TimerGH_Tick function... \r\n";
-                                //TimerGH.Start();
-                                //return;
-                            }
-                        }
-                    }
-
-                    textBox1.Text += "\r\nEnd of GH Timer tick\r\n---------------------\r\n";
-                    logger.Log("End of GH Timer tick");
-                    TimerGH_btn.BackColor = Color.White;
-
-                    if (startmemory == 1 && GH_checkBox.Checked)
-                        TimerGH.Start();
-                }
-            }
-        }
-
-        private async void TimerJB_Tick(object sender, EventArgs e)
-        {
-            if (!JB_checkBox.Checked)
-                TimerJB.Stop();
-
-            if (jbTimerWaiter > 0)
-            {
-                textBox1.Text += "\r\n JB Waiter: " + jbTimerWaiter.ToString();
-                logger.Log("JB Waiter:" + jbTimerWaiter.ToString());
-                jbTimerWaiter--;
-                return;
-            }
-
-            if (startmemory == 1 && JB_checkBox.Checked)
-            {
-                TimerJB.Stop();
-                textBox1.Text += "Timer JB tick occurred \r\n";
-                logger.Log("Timer JB tick occurred");
-
-                TimerJB_btn.BackColor = Color.Green;
-
-                ResultData[] ResultData = new ResultData[10];
-
-                //Current quantity of results = 3 <-------
-                string httpRequest = "http://127.0.0.1:7110/api/v3/results/tightening?programId=0050D604FB07-3-1&limit=10";
-                var httpClient = new HttpClient();
-                HttpResponseMessage resp;
-                string str;
-
-                try
-                {
-                    resp = await httpClient.GetAsync(httpRequest);
-                    str = await resp.Content.ReadAsStringAsync();
-                }
-                catch (Exception exc)
-                {
-                    logger.Log("Error on http request: " + exc.ToString() + "\r\n exiting from TimerJB_Tick function... \r\n");
-
-                    jbTimerWaiter = 4;
-                    TimerJB.Start();
-                    return;
-                }
-
-
-
-                //LOCAL TEST CODE
-                //{
-                // string str = File.ReadAllText(@"C:\Users\gui01\OneDrive\Documents\Drive\Drive\Workspaces\ws-VS2022\C#\TN8_to_MES-master\TN8_to_MES\Req-responses\t1.json", Encoding.UTF8);
-                //string httpRequest = "local TEST-NO-REQ-DONE";
-                //}
-                //LOCAL TEST CODE
-
-
-
-                if (str.Contains(@"""title"": ""An error has occurred."""))
-                {
-                    logger.Log("Request with error on response: \r\n" +
-                        "RAW JSON: " + str);
-                    textBox1.Text = "Error on get results from JB";
-
-                    jbTimerWaiter = 4;
-                    TimerJB.Start();
-                    return;
-                }
-                else
-                {
-                    var jsonData = JsonConvert.DeserializeObject<Data1>(str);
-
-                    for (int i = 0; i < 10; i++)
-                    {
-                        try
-                        {
-                            ResultData[i] = new ResultData();
-
-                            ResultData[i].currentResultId = jsonData.Data[i].ResultMetaData.ResultId.ToString();
-                            ResultData[i].currentProgramversion = jsonData.Data[i].ResultMetaData.programVersionId.ToString();
-                            ResultData[i].vin = jsonData.Data[i].ResultMetaData.Tags[0].Value;
-
-                            logger.Log("JB Request done: " + httpRequest +
-                            "\r\nResultId: " + ResultData[i].currentResultId +
-                            "\r\nVIN: " + ResultData[i].vin +
-                            "\r\nProgramVersion: " + ResultData[i].currentProgramversion);
-                        }
-                        catch (Exception exc)
-                        {
-                            logger.Log("@@ ERROR @@ ON DATA TRANSFER BETWEEN JSON DATA AND RESULTDATA[:" + i.ToString() +  "\r\n" +
-                                    "RAW JSON: " + str + "\r\nException message: \r\n" + exc.Message + "\r\n exiting from TimerJB_Tick function... \r\n");
-                           // TimerJB.Start();
-                            //return;
-                        }
-
-                    }
-
-                    for (int i = 0; i < 10; i++)
-                    {
-                        string resultCompare = CheckLastResultId(ResultData[i].currentResultId);
-
-                        if (ResultData[i].currentResultId == resultCompare)
-                        {
-                            // Repeated result
-                            logger.Log("COMPARATION EVALUATION: --REPEATED RESULT ON TAG: " + ResultData[i].vin +
-                                    "\r\nResultId from http request: " + ResultData[i].currentResultId +
-                                    "\r\nResultId on [RESULTID] table: " + resultCompare);
-
-                            textBox1.Text += "\r\n--REPEATED RESULT ON TAG: " + ResultData[i].vin;
-                        }
-                        else
-                        {
-                            // New result to insert
-                            logger.Log("COMPARATION EVALUATION: ++NEW RESULT ON TAG: " + ResultData[i].vin +
-                                    "\r\nResultId from http request: " + ResultData[i].vin +
-                                    "\r\nResultId on [RESULTID] table: " + resultCompare);
-
-                            textBox1.Text += "\r\n++NEW RESULT ON TAG: " + ResultData[i].vin;
-
-                            InsertOnResultIdTable(ResultData[i]);
-
-                            // #START of formatting for MES format -------------
-                            {
-                                ResultData[i].vin = jsonData.Data[i].ResultMetaData.Tags[0].Value;
-
-                                //
-                                ResultData[i].send_date = jsonData.Data[i].ResultMetaData.CreationTime.Replace("-", string.Empty);
-                                ResultData[i].send_date = ResultData[i].send_date.Replace(":", string.Empty);
-                                ResultData[i].send_date = ResultData[i].send_date.Replace("T", string.Empty);
-                                ResultData[i].send_date = ResultData[i].send_date.Substring(0, 14);
-
-                                // This ternary validation is necessary because when a result is NOK the string on ResultEvaluation is: NotOK (It must be "OK" or "NG")
-                                ResultData[i].resultEvaluation = jsonData.Data[i].ResultMetaData.ResultEvaluation == "OK" ? "OK" : "NG";
-
-                                ResultData[i].torque = jsonData.Data[i].ResultContent[0].OverallResultValues[0].Value.ToString();
+                                ResultData[i].torque = ResultData[i].torque.Replace(".", ",");
 
                                 ResultData[i].send_data = ResultData[i].vin +
                                     ";" + ResultData[i].send_date.Substring(0, 8) +
@@ -850,9 +832,9 @@ namespace TN8_to_MES
                             try
                             {
                                 string sql = "insert into [dbo].[Q_QUALITY_IF] (DEV_ID,SEND_DATE,SEND_SERIAL,DATA_SIZE,DATA_TYPE," +
-                                    "SEND_DATA,CREATE_TIME,CREATE_USER,RESULT_ID,PROGRAM_VERSION) " +
-                                    "values (@DEV_ID,@SEND_DATE,@SEND_SERIAL,@DATA_SIZE,@DATA_TYPE,@SEND_DATA,@CREATE_TIME," +
-                                    "@CREATE_USER,@RESULT_ID,@PROGRAM_VERSION)";
+                                   "SEND_DATA,CREATE_TIME,CREATE_USER,RESULT_ID,PROGRAM_VERSION) " +
+                                   "values (@DEV_ID,@SEND_DATE,@SEND_SERIAL,@DATA_SIZE,@DATA_TYPE,@SEND_DATA,@CREATE_TIME," +
+                                   "@CREATE_USER,@RESULT_ID,@PROGRAM_VERSION)";
 
                                 using (SqlConnection conn = new SqlConnection(connectionString))
                                 {
@@ -877,7 +859,7 @@ namespace TN8_to_MES
                                                 "\r\nResultId: " + ResultData[i].currentResultId +
                                                 "\r\nSendData: " + ResultData[i].send_data);
 
-                                        textBox1.Text += "\r\nInserted on [Q_QUALITY_IF] TAG: " + ResultData[i].vin + "(" + ResultData[i].resultEvaluation + ")";
+                                        consoleTextBox.Text += "\r\nInserted on [Q_QUALITY_IF] TAG: " + ResultData[i].vin + "(" + ResultData[i].resultEvaluation + ")";
                                     }
                                 }
                             }
@@ -890,58 +872,83 @@ namespace TN8_to_MES
                                        "\r\nEXCEPTION MESSAGE:" +
                                        "\r\n" + ex.Message);
 
-                                textBox1.Text += "@@ ERROR @@ INSERTING ON [Q_QUALITY_IF] TAG: " + ResultData[i].vin + "\r\n exiting from TimerJB_Tick function... \r\n";
-                                //TimerJB.Start();
-                                //return; 
+                                consoleTextBox.Text += "@@ ERROR @@ INSERTING ON [Q_QUALITY_IF] TAG: " + ResultData[i].vin + "\r\n exiting from TimerGH_Tick function... \r\n";
+                                //TimerGH.Start();
+                                //return;
                             }
                         }
                     }
 
-                    textBox1.Text += "\r\nEnd of JB Timer tick\r\n---------------------\r\n";
-                    logger.Log("End of JB Timer tick");
-                    TimerJB_btn.BackColor = Color.White;
+                    consoleTextBox.Text += "\r\nEnd of GH Timer tick\r\n---------------------\r\n";
+                    logger.Log("End of GH Timer tick");
+                    timerGHButton.BackColor = Color.White;
 
-                    if (startmemory == 1 && JB_checkBox.Checked)
-                        TimerJB.Start();
+                    if (startMemory == 1 && ghCheckBox.Checked)
+                        timerGH.Start();
                 }
             }
         }
 
-        private void Stop_btn_Click(object sender, EventArgs e)
+        private async void TimerJB_Tick(object sender, EventArgs e)
         {
-            startmemory = 0;
-            TimerCV.Stop();
-            TimerGH.Stop();
-            TimerJB.Stop();
-            textBox1.Text += "App stopped";
-            logger.Log("TN8_to_MES-App stopped");
+            if (jbTimerWaiter > 0)
+            {
+                consoleTextBox.Text += "\r\nTimer JB tick occurred -> JB Waiter: " + jbTimerWaiter.ToString();
+                logger.Log("Timer JB tick occurred -> JB Waiter: " + jbTimerWaiter.ToString());
+                jbTimerWaiter--;
+                return;
+            }
+
+            timerJB.Stop();
+            consoleTextBox.Text += "Timer JB tick occurred \r\n";
+            logger.Log("Timer JB tick occurred");
+
+            timerJBButton.BackColor = Color.Green;
+
+
+            
+
         }
 
-        private void TimerCV_btn_Click(object sender, EventArgs e)
+        private void ConsoleTextBox_TextChanged(object sender, EventArgs e)
+        {
+            if (consoleTextBox.TextLength > 2500)
+                consoleTextBox.Text = "";
+        }
+
+        private void JBCheckBox_CheckedChanged(object sender, EventArgs e)
+        {
+            if (!jbCheckBox.Checked)
+                timerJB.Stop();
+        }
+
+        private void GHCheckBox_CheckedChanged(object sender, EventArgs e)
+        {
+            if (!ghCheckBox.Checked)
+                timerGH.Stop();
+        }
+
+        private void CVCheckBox_CheckedChanged(object sender, EventArgs e)
+        {
+            if (!cvCheckBox.Checked)
+                timerCV.Stop();
+        }
+
+        private void timerCVButton_Click(object sender, EventArgs e)
         {
             //TimerCV.Start();
         }
 
-        private void TimerGH_btn_Click(object sender, EventArgs e)
+        private void timerGHButton_Click(object sender, EventArgs e)
         {
             //TimerGH.Start();
         }
 
-        private void TimerJB_btn_Click(object sender, EventArgs e)
+        private void timerJBButton_Click(object sender, EventArgs e)
         {
             //TimerJB.Start();
         }
 
-        private void textBox1_TextChanged(object sender, EventArgs e)
-        {
-            if (textBox1.TextLength > 2500)
-                textBox1.Text = "";
-        }
 
-        private void label1_Click(object sender, EventArgs e)
-        {
-
-
-        }
     }
 }

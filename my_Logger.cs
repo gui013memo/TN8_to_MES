@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace EngineNumber_checker
+namespace TN8_to_MES
 {
     public abstract class LogBase
     {
